@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Helpdesk IT RS
+Comment=Jalankan Helpdesk IT Rumah Sakit
+Exec=/home/zabbix/ITHelpdesk/start.sh
+Icon=utilities-terminal
+Terminal=true
+Categories=Development;Utility;
+Path=/home/zabbix/ITHelpdesk
+StartupNotify=true
+

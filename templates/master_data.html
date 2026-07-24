@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% block title %}Master Data{% endblock %}
+{% block content %}
+<div class="container">
+    <h3 class="mb-4"><i class="bi bi-gear"></i> Master Data</h3>
+
+    <div class="row g-4">
+        <!-- Unit -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-building"></i> Unit / Ruangan</h5>
+                    <button class="btn btn-sm btn-primary" onclick="openModalUnit()">
+                        <i class="bi bi-plus"></i> Tambah
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nama Unit</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unit-table-body">
+                                <tr><td colspan="4" class="text-center">Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jenis Kerusakan -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Jenis Kerusakan</h5>
+                    <button class="btn btn-sm btn-primary" onclick="openModalKerusakan()">
+                        <i class="bi bi-plus"></i> Tambah
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Kategori</th>
+                                    <th>Nama Kerusakan</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kerusakan-table-body">
+                                <tr><td colspan="5" class="text-center">Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Akun User -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Akun User</h5>
+                    <button class="btn btn-sm btn-primary" onclick="openModalUser()">
+                        <i class="bi bi-plus"></i> Tambah
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Dibuat</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-table-body">
+                                <tr><td colspan="5" class="text-center">Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal User -->
+<div class="modal fade" id="modalUser" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalUserTitle">Tambah User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-user">
+                <input type="hidden" name="edit_id" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password <small class="text-muted">(kosongkan jika tidak diubah)</small></label>
+                        <input type="password" class="form-control" name="password" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select class="form-select" name="role" required>
+                            <option value="admin">Admin</option>
+                            <option value="teknisi">Teknisi</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Unit -->
+<div class="modal fade" id="modalUnit" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalUnitTitle">Tambah Unit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-unit">
+                <input type="hidden" name="edit_id" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nama Unit</label>
+                        <input type="text" class="form-control" name="nama_unit" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" required>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Kerusakan -->
+<div class="modal fade" id="modalKerusakan" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalKerusakanTitle">Tambah Jenis Kerusakan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-kerusakan">
+                <input type="hidden" name="edit_id" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Kategori</label>
+                        <select class="form-select" name="kategori" required>
+                            <option value="Hardware">Hardware</option>
+                            <option value="Jaringan">Jaringan</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Kerusakan</label>
+                        <input type="text" class="form-control" name="nama_kerusakan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" required>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ===== USER =====
+function openModalUser() {
+    document.getElementById('modalUserTitle').textContent = 'Tambah User';
+    document.getElementById('form-user').reset();
+    document.getElementById('form-user').edit_id.value = '';
+    document.querySelector('#form-user input[name="password"]').required = true;
+    document.querySelector('#form-user input[name="password"]').parentElement.querySelector('small').textContent = '';
+    new bootstrap.Modal(document.getElementById('modalUser')).show();
+}
+
+function editUser(id, username, role) {
+    document.getElementById('modalUserTitle').textContent = 'Edit User';
+    const form = document.getElementById('form-user');
+    form.edit_id.value = id;
+    form.username.value = username;
+    form.role.value = role;
+    form.password.value = '';
+    form.password.required = false;
+    document.querySelector('#form-user input[name="password"]').parentElement.querySelector('small').textContent = '(kosongkan jika tidak diubah)';
+    new bootstrap.Modal(document.getElementById('modalUser')).show();
+}
+
+async function loadUsers() {
+    try {
+        const resp = await fetch('/api/master/users');
+        const users = await resp.json();
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = users.map((u, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td><i class="bi bi-person-circle"></i> ${u.username}</td>
+                <td><span class="badge bg-secondary">${u.role}</span></td>
+                <td>${u.created_at ? formatDate(u.created_at) : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editUser(${u.id}, '${u.username}', '${u.role}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.username}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        document.getElementById('user-table-body').innerHTML =
+            '<tr><td colspan="5" class="text-danger">Gagal memuat data</td></tr>';
+    }
+}
+
+async function deleteUser(id, username) {
+    if (!confirm(`Hapus user "${username}"?`)) return;
+    try {
+        await fetch(`/api/master/users/${id}`, { method: 'DELETE' });
+        showToast('User berhasil dihapus', 'success');
+        loadUsers();
+    } catch (e) {
+        showToast('Gagal menghapus user', 'error');
+    }
+}
+
+document.getElementById('form-user')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+
+    const editId = this.edit_id.value;
+    const body = {
+        username: this.username.value.trim(),
+        role: this.role.value,
+    };
+    if (this.password.value) {
+        body.password = this.password.value;
+    }
+
+    try {
+        const url = editId ? `/api/master/users/${editId}` : '/api/master/users';
+        const method = editId ? 'PUT' : 'POST';
+        const resp = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || 'Gagal menyimpan');
+        }
+        showToast(editId ? 'User berhasil diubah' : 'User berhasil ditambahkan', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalUser')).hide();
+        this.reset();
+        loadUsers();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+});
+
+// ===== UNIT =====
+function openModalUnit() {
+    document.getElementById('modalUnitTitle').textContent = 'Tambah Unit';
+    document.getElementById('form-unit').reset();
+    document.getElementById('form-unit').edit_id.value = '';
+    document.querySelector('#form-unit select[name="status"]').value = 'Aktif';
+    new bootstrap.Modal(document.getElementById('modalUnit')).show();
+}
+
+function editUnit(id, nama_unit, status) {
+    document.getElementById('modalUnitTitle').textContent = 'Edit Unit';
+    const form = document.getElementById('form-unit');
+    form.edit_id.value = id;
+    form.nama_unit.value = nama_unit;
+    form.status.value = status;
+    new bootstrap.Modal(document.getElementById('modalUnit')).show();
+}
+
+async function loadUnits() {
+    try {
+        const resp = await fetch('/api/master/units');
+        const units = await resp.json();
+        const tbody = document.getElementById('unit-table-body');
+        tbody.innerHTML = units.map((u, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${u.nama_unit}</td>
+                <td>${u.status}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editUnit(${u.id}, '${u.nama_unit}', '${u.status}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUnit(${u.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        document.getElementById('unit-table-body').innerHTML =
+            '<tr><td colspan="4" class="text-danger">Gagal memuat data</td></tr>';
+    }
+}
+
+async function deleteUnit(id) {
+    if (!confirm('Hapus unit ini?')) return;
+    try {
+        await fetch(`/api/master/units/${id}`, { method: 'DELETE' });
+        showToast('Unit berhasil dihapus', 'success');
+        loadUnits();
+    } catch (e) {
+        showToast('Gagal menghapus unit', 'error');
+    }
+}
+
+document.getElementById('form-unit').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+
+    const editId = this.edit_id.value;
+    const nama = this.nama_unit.value;
+    const status = this.status.value;
+
+    try {
+        let resp;
+        if (editId) {
+            resp = await fetch(`/api/master/units/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nama_unit: nama, status: status })
+            });
+        } else {
+            resp = await fetch(`/api/master/units?nama_unit=${encodeURIComponent(nama)}&status=${encodeURIComponent(status)}`, { method: 'POST' });
+        }
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || 'Gagal menyimpan');
+        }
+        showToast(editId ? 'Unit berhasil diubah' : 'Unit berhasil ditambahkan', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalUnit')).hide();
+        this.reset();
+        loadUnits();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+});
+
+// ===== KERUSAKAN =====
+function openModalKerusakan() {
+    document.getElementById('modalKerusakanTitle').textContent = 'Tambah Jenis Kerusakan';
+    document.getElementById('form-kerusakan').reset();
+    document.getElementById('form-kerusakan').edit_id.value = '';
+    document.querySelector('#form-kerusakan select[name="status"]').value = 'Aktif';
+    new bootstrap.Modal(document.getElementById('modalKerusakan')).show();
+}
+
+function editKerusakan(id, kategori, nama_kerusakan, status) {
+    document.getElementById('modalKerusakanTitle').textContent = 'Edit Jenis Kerusakan';
+    const form = document.getElementById('form-kerusakan');
+    form.edit_id.value = id;
+    form.kategori.value = kategori;
+    form.nama_kerusakan.value = nama_kerusakan;
+    form.status.value = status;
+    new bootstrap.Modal(document.getElementById('modalKerusakan')).show();
+}
+
+async function loadKerusakan() {
+    try {
+        const resp = await fetch('/api/master/kerusakan');
+        const items = await resp.json();
+        const tbody = document.getElementById('kerusakan-table-body');
+        tbody.innerHTML = items.map((k, i) => {
+            const badgeClass = k.kategori === 'Hardware' ? 'bg-primary' : 'bg-info';
+            return `<tr>
+                <td>${i + 1}</td>
+                <td><span class="badge ${badgeClass}">${k.kategori}</span></td>
+                <td>${k.nama_kerusakan}</td>
+                <td>${k.status}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editKerusakan(${k.id}, '${k.kategori}', '${k.nama_kerusakan}', '${k.status}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteKerusakan(${k.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        document.getElementById('kerusakan-table-body').innerHTML =
+            '<tr><td colspan="5" class="text-danger">Gagal memuat data</td></tr>';
+    }
+}
+
+async function deleteKerusakan(id) {
+    if (!confirm('Hapus jenis kerusakan ini?')) return;
+    try {
+        await fetch(`/api/master/kerusakan/${id}`, { method: 'DELETE' });
+        showToast('Jenis kerusakan berhasil dihapus', 'success');
+        loadKerusakan();
+    } catch (e) {
+        showToast('Gagal menghapus', 'error');
+    }
+}
+
+document.getElementById('form-kerusakan').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+
+    const editId = this.edit_id.value;
+    const kategori = this.kategori.value;
+    const nama = this.nama_kerusakan.value;
+    const status = this.status.value;
+
+    try {
+        let resp;
+        if (editId) {
+            resp = await fetch(`/api/master/kerusakan/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kategori: kategori, nama_kerusakan: nama, status: status })
+            });
+        } else {
+            resp = await fetch(
+                `/api/master/kerusakan?kategori=${encodeURIComponent(kategori)}&nama_kerusakan=${encodeURIComponent(nama)}&status=${encodeURIComponent(status)}`,
+                { method: 'POST' }
+            );
+        }
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || 'Gagal menyimpan');
+        }
+        showToast(editId ? 'Jenis kerusakan berhasil diubah' : 'Jenis kerusakan berhasil ditambahkan', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalKerusakan')).hide();
+        this.reset();
+        loadKerusakan();
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+});
+
+loadUsers();
+loadUnits();
+loadKerusakan();
+</script>
+{% endblock %}
+

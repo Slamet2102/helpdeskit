@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="dashboard-shell">
+    <div class="row g-3 mb-4" id="stat-cards">
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-primary h-100" id="card-today" data-filter="today" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Filter</span>
+                        <span class="stat-card-trend"><i class="bi bi-calendar-day"></i></span>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-icon"><i class="bi bi-calendar-day"></i></div>
+                        <div>
+                            <h2 class="mb-0 stat-value" id="stat-total-hari-ini">0</h2>
+                            <small class="stat-label">Hari Ini</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-danger h-100" id="card-open" data-filter="Open" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Status</span>
+                        <span class="stat-card-trend"><i class="bi bi-envelope-open"></i></span>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-icon"><i class="bi bi-envelope-open"></i></div>
+                        <div>
+                            <h2 class="mb-0 stat-value" id="stat-open">0</h2>
+                            <small class="stat-label">Open</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-warning h-100" id="card-on-progress" data-filter="On Progress" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Status</span>
+                        <span class="stat-card-trend"><i class="bi bi-arrow-repeat"></i></span>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+                        <div>
+                            <h2 class="mb-0 stat-value" id="stat-on-progress">0</h2>
+                            <small class="stat-label">On Progress</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-secondary h-100" id="card-pending" data-filter="Pending" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Status</span>
+                        <span class="stat-card-trend"><i class="bi bi-pause-circle"></i></span>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-icon"><i class="bi bi-pause-circle"></i></div>
+                        <div>
+                            <h2 class="mb-0 stat-value" id="stat-pending">0</h2>
+                            <small class="stat-label">Pending</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-success h-100" id="card-selesai" data-filter="Selesai" style="cursor:pointer;">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Status</span>
+                        <span class="stat-card-trend"><i class="bi bi-check-circle"></i></span>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+                        <div>
+                            <h2 class="mb-0 stat-value" id="stat-selesai">0</h2>
+                            <small class="stat-label">Selesai</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-6">
+            <div class="card stat-card stat-card-info h-100">
+                <div class="card-body">
+                    <div class="stat-card-top">
+                        <span class="stat-card-badge">Aksi</span>
+                        <span class="stat-card-trend"><i class="bi bi-plus-circle"></i></span>
+                    </div>
+                    <a href="/tiket/baru" class="stat-card-new-link text-decoration-none d-flex flex-column justify-content-center h-100 w-100">
+                        <div class="stat-card-content stat-card-content-new">
+                            <div class="stat-icon"><i class="bi bi-plus-circle"></i></div>
+                            <div>
+                                <h5 class="mb-1">Tiket Baru</h5>
+                                <small>Klik di sini</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card dashboard-panel mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Trend 7 Hari Terakhir</h5>
+            <span class="text-muted small" id="chart-total-summary">0 tiket</span>
+        </div>
+        <div class="card-body">
+            <div class="chart-grid" id="daily-chart"></div>
+        </div>
+    </div>
+
+    <div class="card dashboard-panel mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Tahun</label>
+                    <input type="number" class="form-control" id="report-year" placeholder="Tahun" min="2000" max="2100">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Bulan</label>
+                    <select class="form-select" id="report-month">
+                        <option value="">Semua Bulan</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-block">Aksi</label>
+                    <button class="btn btn-outline-primary w-100" id="report-refresh">Tarik Data</button>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-block">Ekspor</label>
+                    <button class="btn btn-success w-100" id="report-export">Unduh CSV</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card dashboard-panel">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Tiket Terbaru</h5>
+            <div>
+                <select class="form-select form-select-sm d-inline-block w-auto" id="filter-status">
+                    <option value="">Semua Status</option>
+                    <option value="Open">Open</option>
+                    <option value="On Progress">On Progress</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Selesai">Selesai</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover dashboard-table" id="tiket-table">
+                    <thead>
+                        <tr>
+                            <th style="cursor:pointer;" onclick="toggleSort('nomor_tiket')">No Tiket <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nomor_tiket"></i></th>
+                            <th style="cursor:pointer;" onclick="toggleSort('tanggal')">Tanggal <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-tanggal"></i></th>
+                            <th style="cursor:pointer;" onclick="toggleSort('nama_pelapor')">Pelapor <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nama_pelapor"></i></th>
+                            <th>Ruangan</th>
+                            <th>Jenis Kerusakan</th>
+                            <th style="cursor:pointer;" onclick="toggleSort('status')">Status <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-status"></i></th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tiket-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination justify-content-center" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let selectedStatus = '';
+let selectedToday = false;
+let currentSortBy = 'tanggal';
+let currentSortOrder = 'desc';
+
+// Abort controllers to cancel stale fetch requests per request type
+const abortControllers = {};
+
+function getAbortSignal(kind = 'default') {
+    if (abortControllers[kind]) {
+        abortControllers[kind].abort();
+    }
+    abortControllers[kind] = new AbortController();
+    return abortControllers[kind].signal;
+}
+
+function toggleSort(column) {
+    if (currentSortBy === column) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortBy = column;
+        currentSortOrder = 'asc';
+    }
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up sort-icon';
+    });
+    const icon = document.getElementById(`sort-icon-${column}`);
+    if (icon) {
+        icon.className = currentSortOrder === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down';
+    }
+    loadTickets(1);
+}
+
+function clearActiveCards() {
+    document.querySelectorAll('#stat-cards [data-filter]').forEach(card => {
+        card.classList.remove('stat-card-active');
+    });
+}
+
+function setActiveCard(filter) {
+    clearActiveCards();
+    const label = document.getElementById('active-filter-label');
+    if (!filter) {
+        if (label) label.textContent = 'Semua tiket';
+        return;
+    }
+    const card = document.querySelector(`#stat-cards [data-filter="${filter}"]`);
+    if (card) {
+        card.classList.add('stat-card-active');
+    }
+    if (label) {
+        const filterText = filter === 'today' ? 'Hari ini' : filter;
+        label.textContent = filterText;
+    }
+}
+
+function bindDashboardFilters() {
+    document.querySelectorAll('#stat-cards [data-filter]').forEach(card => {
+        card.addEventListener('click', () => {
+            const filter = card.getAttribute('data-filter');
+            if (filter === 'today') {
+                selectedToday = true;
+                selectedStatus = '';
+                document.getElementById('filter-status').value = '';
+            } else {
+                selectedToday = false;
+                selectedStatus = filter;
+                document.getElementById('filter-status').value = filter;
+            }
+            setActiveCard(filter);
+            loadStats();
+            loadTickets(1);
+        });
+    });
+}
+
+function loadStats() {
+    const signal = getAbortSignal('stats');
+    const url = selectedToday ? '/api/dashboard/stats?today=true' : '/api/dashboard/stats';
+
+    fetch(url, { signal })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('stat-total-hari-ini').textContent = data.total_hari_ini;
+            document.getElementById('stat-open').textContent = data.open;
+            document.getElementById('stat-on-progress').textContent = data.on_progress;
+            document.getElementById('stat-pending').textContent = data.pending;
+            document.getElementById('stat-selesai').textContent = data.selesai;
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+        });
+}
+
+function loadDailyChart() {
+    const signal = getAbortSignal('chart');
+    fetch('/api/dashboard/daily-summary', { signal })
+        .then(r => r.json())
+        .then(data => {
+            const chart = document.getElementById('daily-chart');
+            const totalSummary = document.getElementById('chart-total-summary');
+            const entries = data.series || [];
+            const maxValue = Math.max(...entries.map(item => item.count), 1);
+
+            chart.innerHTML = entries.map(item => {
+                const height = Math.max(8, Math.round((item.count / maxValue) * 100));
+                const date = new Date(item.date + 'T00:00:00');
+                const dayLabel = date.toLocaleDateString('id-ID', { weekday: 'short' });
+                const shortDate = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                return `
+                    <div class="chart-column">
+                        <div class="chart-bar-wrap">
+                            <div class="chart-bar" style="height:${height}%;"></div>
+                        </div>
+                        <div class="chart-value">${item.count}</div>
+                        <div class="chart-label">${dayLabel}</div>
+                        <div class="chart-sub-label">${shortDate}</div>
+                    </div>
+                `;
+            }).join('');
+
+            if (totalSummary) {
+                totalSummary.textContent = `${data.total || 0} tiket`;
+            }
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+        });
+}
+
+function renderPagination(page, totalPages) {
+    const pages = [];
+    const maxButtons = 5;
+
+    if (totalPages <= maxButtons) {
+        for (let i = 1; i <= totalPages; i += 1) {
+            pages.push(i);
+        }
+    } else if (page <= 3) {
+        for (let i = 1; i <= maxButtons; i += 1) {
+            pages.push(i);
+        }
+    } else {
+        const start = Math.max(1, page - 2);
+        for (let i = start; i < start + maxButtons; i += 1) {
+            pages.push(i);
+        }
+    }
+
+    const trimmed = pages.filter((value, index) => pages.indexOf(value) === index && value > 0);
+    const pageItems = trimmed.map(p => {
+        const active = p === page ? ' active' : '';
+        const disabled = p === page ? ' disabled' : '';
+        return `<li class="page-item${active}${disabled}"><a class="page-link" href="#" onclick="loadTickets(${p}); return false;">${p}</a></li>`;
+    });
+
+    if (page > 4 && totalPages > maxButtons) {
+        pageItems.unshift('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+        pageItems.unshift('<li class="page-item"><a class="page-link" href="#" onclick="loadTickets(1); return false;">1</a></li>');
+    }
+
+    if (page < totalPages && totalPages > maxButtons) {
+        pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+    }
+
+    return pageItems.join('');
+}
+
+function loadTickets(page = 1) {
+    const signal = getAbortSignal('tickets');
+    const status = selectedToday ? '' : (selectedStatus || document.getElementById('filter-status').value || '');
+    let url = `/api/tiket/?page=${page}&limit=10&sort_by=${currentSortBy}&sort_order=${currentSortOrder}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (selectedToday) url += '&today=true';
+
+    fetch(url, { signal })
+        .then(async r => {
+            const totalCount = Number(r.headers.get('x-total-count') || 0);
+            const totalPages = Number(r.headers.get('x-total-pages') || 1);
+            const data = await r.json();
+            return { data, totalCount, totalPages };
+        })
+        .then(({ data, totalCount, totalPages }) => {
+            const tbody = document.getElementById('tiket-table-body');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada tiket</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = data.map(t => {
+                const date = new Date(t.tanggal).toLocaleString('id-ID', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const badgeClass = {
+                    'Open': 'bg-danger',
+                    'On Progress': 'bg-warning text-dark',
+                    'Pending': 'bg-secondary',
+                    'Selesai': 'bg-success'
+                }[t.status] || 'bg-primary';
+
+                return `<tr>
+                    <td><strong>${t.nomor_tiket}</strong></td>
+                    <td>${date}</td>
+                    <td>${t.nama_pelapor}</td>
+                    <td>${t.unit?.nama_unit || '-'}</td>
+                    <td>${t.kerusakan?.nama_kerusakan || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${t.status}</span></td>
+                    <td>
+                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> Detail
+                        </a>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = renderPagination(page, totalPages);
+            currentPage = page;
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+        });
+}
+
+function getReportParams() {
+    const year = document.getElementById('report-year').value;
+    const month = document.getElementById('report-month').value;
+    let params = [];
+    if (year) params.push(`year=${encodeURIComponent(year)}`);
+    if (month) params.push(`month=${encodeURIComponent(month)}`);
+    return params.length ? `?${params.join('&')}` : '';
+}
+
+function loadReport() {
+    const signal = getAbortSignal('report');
+    const params = getReportParams();
+    fetch(`/api/dashboard/tiket${params}`, { signal })
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('tiket-table-body');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada tiket untuk periode ini</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            tbody.innerHTML = data.map(t => {
+                const date = new Date(t.tanggal).toLocaleString('id-ID', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const badgeClass = {
+                    'Open': 'bg-danger',
+                    'On Progress': 'bg-warning text-dark',
+                    'Pending': 'bg-secondary',
+                    'Selesai': 'bg-success'
+                }[t.status] || 'bg-primary';
+
+                return `<tr>
+                    <td><strong>${t.nomor_tiket}</strong></td>
+                    <td>${date}</td>
+                    <td>${t.nama_pelapor}</td>
+                    <td>${t.unit || '-'}</td>
+                    <td>${t.kerusakan || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${t.status}</span></td>
+                    <td>
+                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> Detail
+                        </a>
+                    </td>
+                </tr>`;
+            }).join('');
+            document.getElementById('pagination').innerHTML = '';
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+        });
+}
+
+function exportReport() {
+    const params = getReportParams();
+    window.location.href = `/api/dashboard/export${params}`;
+}
+
+document.getElementById('filter-status').addEventListener('change', () => {
+    selectedToday = false;
+    selectedStatus = document.getElementById('filter-status').value;
+    clearActiveCards();
+    setActiveCard(selectedStatus || '');
+    loadStats();
+    loadTickets(1);
+});
+document.getElementById('report-refresh').addEventListener('click', () => loadReport());
+document.getElementById('report-export').addEventListener('click', () => exportReport());
+
+bindDashboardFilters();
+loadStats();
+loadDailyChart();
+loadTickets();
+</script>
+{% endblock %}

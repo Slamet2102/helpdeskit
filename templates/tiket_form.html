@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Buat Tiket Baru{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Buat Tiket Baru</h4>
+                </div>
+                <div class="card-body">
+                    <form id="form-tiket" enctype="multipart/form-data">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nama Pelapor <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="nama_pelapor" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Nomor WhatsApp <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" name="no_whatsapp" placeholder="6281234567890" required>
+                                <div class="form-text">Contoh: 6281234567890 (tanpa + atau spasi)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Unit/Ruangan <span class="text-danger">*</span></label>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start text-muted" type="button" id="unit-dropdown-button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span id="unit-dropdown-label">Pilih Unit...</span>
+                                    </button>
+                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="unit-dropdown-button">
+                                        <input type="text" id="unit-search" class="form-control mb-2" placeholder="Cari unit..." autocomplete="off">
+                                        <div id="unit-options" class="list-group"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="unit_id" id="unit-id-hidden">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Jenis Kerusakan <span class="text-danger">*</span></label>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start text-muted" type="button" id="kerusakan-dropdown-button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span id="kerusakan-dropdown-label">Pilih Jenis Kerusakan...</span>
+                                    </button>
+                                    <div class="dropdown-menu p-2 w-100" aria-labelledby="kerusakan-dropdown-button">
+                                        <input type="text" id="kerusakan-search" class="form-control mb-2" placeholder="Cari jenis kerusakan..." autocomplete="off">
+                                        <div id="kerusakan-options" class="list-group"></div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="kerusakan_id" id="kerusakan-id-hidden">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Deskripsi Masalah</label>
+                                <textarea class="form-control" name="deskripsi" rows="3" placeholder="Jelaskan masalah yang terjadi..."></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Foto (opsional)</label>
+                                <input type="file" class="form-control" name="foto" id="foto-input" accept="image/*">
+                            </div>
+                            <div class="col-12" id="foto-preview-container" style="display:none;">
+                                <label class="form-label">Preview Foto</label>
+                                <div class="border rounded p-2" style="max-width: 320px;">
+                                    <img id="foto-preview" class="img-fluid" alt="Preview Foto">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-between">
+                            <a href="/" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Kembali
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btn-submit">
+                                <i class="bi bi-send"></i> Simpan Tiket
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Loading overlay -->
+                    <div id="loading-overlay" class="text-center py-4" style="display:none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Menyimpan tiket...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allUnits = [];
+let allKerusakan = [];
+
+// Load master data
+async function loadMasterData() {
+    try {
+        const [units, kerusakan] = await Promise.all([
+            fetch('/api/master/units').then(r => r.json()),
+            fetch('/api/master/kerusakan').then(r => r.json())
+        ]);
+
+        allUnits = units;
+        allKerusakan = kerusakan;
+
+        renderUnitOptions('');
+        renderKerusakanOptions('');
+    } catch (e) {
+        showToast('Gagal memuat data master', 'error');
+    }
+}
+
+const unitOptions = document.getElementById('unit-options');
+const kerusakanOptions = document.getElementById('kerusakan-options');
+const unitSearch = document.getElementById('unit-search');
+const kerusakanSearch = document.getElementById('kerusakan-search');
+const unitDropdownButton = document.getElementById('unit-dropdown-button');
+const kerusakanDropdownButton = document.getElementById('kerusakan-dropdown-button');
+const unitDropdownLabel = document.getElementById('unit-dropdown-label');
+const kerusakanDropdownLabel = document.getElementById('kerusakan-dropdown-label');
+const unitHidden = document.getElementById('unit-id-hidden');
+const kerusakanHidden = document.getElementById('kerusakan-id-hidden');
+const fotoInput = document.getElementById('foto-input');
+const fotoPreviewContainer = document.getElementById('foto-preview-container');
+const fotoPreview = document.getElementById('foto-preview');
+
+function selectUnit(id, label) {
+    unitHidden.value = id;
+    unitDropdownLabel.textContent = label;
+    unitDropdownButton.classList.remove('text-muted');
+}
+
+function selectKerusakan(id, label) {
+    kerusakanHidden.value = id;
+    kerusakanDropdownLabel.textContent = label;
+    kerusakanDropdownButton.classList.remove('text-muted');
+}
+
+function renderUnitOptions(filter) {
+    const query = filter.trim().toLowerCase();
+    const matches = allUnits.filter(u => u.nama_unit.toLowerCase().includes(query));
+    unitOptions.innerHTML = matches.length
+        ? matches.map(u => `<button type="button" class="list-group-item list-group-item-action" data-id="${u.id}" data-label="${u.nama_unit}">${u.nama_unit}</button>`).join('')
+        : '<div class="list-group-item disabled">Tidak ada unit ditemukan</div>';
+    unitOptions.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => selectUnit(btn.dataset.id, btn.dataset.label));
+    });
+    if (!unitHidden.value && matches.length === 1) {
+        selectUnit(matches[0].id, matches[0].nama_unit);
+    }
+}
+
+function renderKerusakanOptions(filter) {
+    const query = filter.trim().toLowerCase();
+    const matches = allKerusakan.filter(k => (`[${k.kategori}] ${k.nama_kerusakan}`).toLowerCase().includes(query));
+    kerusakanOptions.innerHTML = matches.length
+        ? matches.map(k => `<button type="button" class="list-group-item list-group-item-action" data-id="${k.id}" data-label="[${k.kategori}] ${k.nama_kerusakan}">[${k.kategori}] ${k.nama_kerusakan}</button>`).join('')
+        : '<div class="list-group-item disabled">Tidak ada jenis kerusakan ditemukan</div>';
+    kerusakanOptions.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => selectKerusakan(btn.dataset.id, btn.dataset.label));
+    });
+    if (!kerusakanHidden.value && matches.length === 1) {
+        selectKerusakan(matches[0].id, `[${matches[0].kategori}] ${matches[0].nama_kerusakan}`);
+    }
+}
+
+function focusInputOnDropdownOpen(button, input) {
+    const dropdownEl = button.parentElement;
+    if (dropdownEl) {
+        dropdownEl.addEventListener('shown.bs.dropdown', () => {
+            input.focus();
+        });
+    }
+}
+
+focusInputOnDropdownOpen(unitDropdownButton, unitSearch);
+focusInputOnDropdownOpen(kerusakanDropdownButton, kerusakanSearch);
+
+unitSearch.addEventListener('input', () => renderUnitOptions(unitSearch.value));
+kerusakanSearch.addEventListener('input', () => renderKerusakanOptions(kerusakanSearch.value));
+
+fotoInput.addEventListener('change', () => {
+    const file = fotoInput.files[0];
+    if (!file) {
+        fotoPreviewContainer.style.display = 'none';
+        fotoPreview.src = '';
+        return;
+    }
+    if (!file.type.startsWith('image/')) {
+        showToast('Hanya file gambar yang diperbolehkan', 'error');
+        fotoInput.value = '';
+        fotoPreviewContainer.style.display = 'none';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        fotoPreview.src = e.target.result;
+        fotoPreviewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+});
+
+// Handle form submit
+document.getElementById('form-tiket').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const btn = document.getElementById('btn-submit');
+    const overlay = document.getElementById('loading-overlay');
+
+    btn.disabled = true;
+    overlay.style.display = 'block';
+
+    try {
+        const resp = await fetch('/api/tiket/', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!resp.ok) {
+            const contentType = resp.headers.get('content-type') || '';
+            const raw = await resp.text();
+            let message = 'Gagal menyimpan tiket';
+
+            if (contentType.includes('application/json') && raw) {
+                try {
+                    const err = JSON.parse(raw);
+                    message = err.detail || message;
+                } catch {
+                    message = raw || message;
+                }
+            } else {
+                message = raw || message;
+            }
+
+            throw new Error(message);
+        }
+
+        const tiket = await resp.json();
+        showToast(`Tiket ${tiket.nomor_tiket} berhasil dibuat!`, 'success');
+
+        setTimeout(() => {
+            window.location.href = `/tiket/${tiket.id}`;
+        }, 1200);
+
+    } catch (e) {
+        showToast(e.message, 'error');
+        btn.disabled = false;
+        overlay.style.display = 'none';
+    }
+});
+
+loadMasterData();
+</script>
+{% endblock %}
+

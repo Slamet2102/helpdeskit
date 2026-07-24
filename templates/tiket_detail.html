@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block title %}Detail Tiket{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Detail Tiket -->
+            <div class="card mb-4" id="tiket-detail-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-ticket-detailed"></i> Detail Tiket</h4>
+                    <span id="tiket-status-badge" class="badge fs-6"></span>
+                </div>
+                <div class="card-body">
+                    <div id="tiket-loading" class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2">Memuat data tiket...</p>
+                    </div>
+                    <div id="tiket-content" style="display:none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th width="120">No Tiket</th>
+                                        <td><strong id="detail-nomor-tiket"></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <td id="detail-tanggal"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Pelapor</th>
+                                        <td id="detail-pelapor"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>WhatsApp</th>
+                                        <td id="detail-whatsapp"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <th width="120">Ruangan</th>
+                                        <td id="detail-ruangan"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Kerusakan</th>
+                                        <td id="detail-kerusakan"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Kategori</th>
+                                        <td id="detail-kategori"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status</th>
+                                        <td id="detail-status"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Durasi</th>
+                                        <td id="detail-durasi"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h6>Deskripsi Masalah:</h6>
+                            <p id="detail-deskripsi" class="text-muted"></p>
+                        </div>
+                        <div id="detail-foto-container" style="display:none;" class="mb-3">
+                            <h6>Foto:</h6>
+                            <img id="detail-foto" class="img-fluid rounded" style="max-height: 300px;" alt="Foto">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Update Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Ubah Status</h5>
+                </div>
+                <div class="card-body">
+                    <form id="form-update-status">
+                        <div id="status-lock-alert" class="alert alert-info d-none" role="alert">
+                            Tiket sudah selesai dan tidak dapat diubah statusnya.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status Baru</label>
+                            <select class="form-select" id="new-status" required>
+                                <option value="">Pilih Status...</option>
+                                <option value="Open">Open</option>
+                                <option value="On Progress">On Progress</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Selesai">Selesai</option>
+                                <option value="Batal">Batal</option>
+                                <option value="Rusak">Rusak</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Catatan</label>
+                            <textarea class="form-control" id="status-catatan" rows="2" placeholder="Catatan perubahan status..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-save"></i> Update Status
+                        </button>
+                    </form>
+                    <div class="d-grid mt-3">
+                        <button id="archive-button" class="btn btn-danger" type="button">
+                            <i class="bi bi-archive"></i> Arsipkan Tiket
+                        </button>
+                        <button id="restore-button" class="btn btn-success mt-2" type="button" style="display:none;">
+                            <i class="bi bi-arrow-counterclockwise"></i> Pulihkan Tiket
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Riwayat Progress -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Riwayat Status</h5>
+                </div>
+                <div class="card-body">
+                    <div id="progress-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                        <p class="mt-2">Memuat riwayat...</p>
+                    </div>
+                    <ul class="timeline" id="progress-list" style="display:none;">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TIKET_ID = {{ tiket_id }};
+
+async function loadTiket() {
+    try {
+        const resp = await fetch(`/api/tiket/${TIKET_ID}`);
+        if (!resp.ok) throw new Error('Tiket tidak ditemukan');
+        const t = await resp.json();
+
+        document.getElementById('tiket-loading').style.display = 'none';
+        document.getElementById('tiket-content').style.display = 'block';
+
+        document.getElementById('detail-nomor-tiket').textContent = t.nomor_tiket;
+        document.getElementById('detail-tanggal').textContent = new Date(t.tanggal).toLocaleString('id-ID', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        document.getElementById('detail-pelapor').textContent = t.nama_pelapor;
+        document.getElementById('detail-whatsapp').textContent = t.no_whatsapp;
+        document.getElementById('detail-ruangan').textContent = t.unit?.nama_unit || '-';
+        document.getElementById('detail-kerusakan').textContent = t.kerusakan?.nama_kerusakan || '-';
+        document.getElementById('detail-kategori').textContent = t.kerusakan?.kategori || '-';
+        document.getElementById('detail-deskripsi').textContent = t.deskripsi || 'Tidak ada deskripsi';
+
+        // Status badge
+        const badge = document.getElementById('tiket-status-badge');
+        const badgeClass = {
+            'Open': 'bg-danger',
+            'On Progress': 'bg-warning text-dark',
+            'Pending': 'bg-secondary',
+            'Selesai': 'bg-success',
+            'Batal': 'bg-dark',
+            'Rusak': 'bg-danger'
+        }[t.status] || 'bg-primary';
+        badge.className = `badge fs-6 ${badgeClass}`;
+        badge.textContent = t.status;
+        document.getElementById('detail-status').textContent = t.status;
+        document.getElementById('detail-durasi').textContent = t.durasi || '-';
+
+        const archiveButton = document.getElementById('archive-button');
+        const restoreButton = document.getElementById('restore-button');
+        const formUpdateStatus = document.getElementById('form-update-status');
+        const statusLockAlert = document.getElementById('status-lock-alert');
+        const newStatusInput = document.getElementById('new-status');
+        const updateButton = formUpdateStatus.querySelector('button[type="submit"]');
+
+        if (t.is_archived) {
+            archiveButton.style.display = 'none';
+            restoreButton.style.display = 'block';
+            formUpdateStatus.style.display = 'none';
+        } else {
+            archiveButton.style.display = 'block';
+            restoreButton.style.display = 'none';
+            formUpdateStatus.style.display = 'block';
+            if (t.status === 'Selesai') {
+                statusLockAlert.classList.remove('d-none');
+                newStatusInput.disabled = true;
+                updateButton.disabled = true;
+            } else {
+                statusLockAlert.classList.add('d-none');
+                newStatusInput.disabled = false;
+                updateButton.disabled = false;
+            }
+        }
+
+        // Foto
+        if (t.foto) {
+            document.getElementById('detail-foto-container').style.display = 'block';
+            document.getElementById('detail-foto').src = t.foto;
+        }
+
+        // Load riwayat progress
+        loadProgress(t.progress);
+
+    } catch (e) {
+        document.getElementById('tiket-loading').innerHTML = `
+            <div class="alert alert-danger">${e.message}</div>
+            <a href="/tiket" class="btn btn-primary">Kembali ke Daftar</a>
+        `;
+    }
+}
+
+function loadProgress(progressList) {
+    document.getElementById('progress-loading').style.display = 'none';
+    const list = document.getElementById('progress-list');
+    list.style.display = 'block';
+
+    if (!progressList || progressList.length === 0) {
+        list.innerHTML = '<li class="text-muted">Belum ada riwayat</li>';
+        return;
+    }
+
+    const badgeClass = {
+        'Open': 'bg-danger',
+        'On Progress': 'bg-warning text-dark',
+        'Pending': 'bg-secondary',
+        'Selesai': 'bg-success',
+        'Batal': 'bg-dark',
+        'Rusak': 'bg-danger'
+    };
+
+    list.innerHTML = progressList.map(p => {
+        const date = new Date(p.tanggal).toLocaleString('id-ID', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        return `<li class="mb-3">
+            <div class="d-flex justify-content-between">
+                <span class="badge ${badgeClass[p.status] || 'bg-primary'}">${p.status}</span>
+                <small class="text-muted">${date}</small>
+            </div>
+            ${p.catatan ? `<p class="mb-0 mt-1 text-muted">${p.catatan}</p>` : ''}
+        </li>`;
+    }).join('');
+}
+
+// Handle update status
+document.getElementById('form-update-status').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const status = document.getElementById('new-status').value;
+    const catatan = document.getElementById('status-catatan').value;
+
+    if (!status) {
+        showToast('Pilih status terlebih dahulu', 'error');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/tiket/${TIKET_ID}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status, catatan })
+        });
+
+        if (!resp.ok) throw new Error('Gagal update status');
+
+        showToast('Status berhasil diupdate!', 'success');
+        loadTiket(); // Reload
+
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+});
+
+document.getElementById('archive-button').addEventListener('click', async function() {
+    if (!confirm('Pindahkan tiket ini ke arsip?')) return;
+    const resp = await fetch(`/api/tiket/${TIKET_ID}`, { method: 'DELETE' });
+    if (!resp.ok) {
+        showToast('Gagal mengarsipkan tiket', 'error');
+        return;
+    }
+    showToast('Tiket berhasil diarsipkan', 'success');
+    loadTiket();
+});
+
+document.getElementById('restore-button').addEventListener('click', async function() {
+    if (!confirm('Pulihkan tiket dari arsip?')) return;
+    const resp = await fetch(`/api/tiket/archive/${TIKET_ID}/restore`, { method: 'POST' });
+    if (!resp.ok) {
+        showToast('Gagal memulihkan tiket', 'error');
+        return;
+    }
+    showToast('Tiket berhasil dipulihkan', 'success');
+    loadTiket();
+});
+
+loadTiket();
+</script>
+{% endblock %}
+

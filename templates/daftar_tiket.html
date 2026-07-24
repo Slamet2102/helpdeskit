@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Daftar Tiket{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="bi bi-list-ul"></i> Daftar Tiket</h3>
+        <a href="/tiket/baru" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Tiket Baru
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="filter-status">
+                        <option value="">Semua Status</option>
+                        <option value="Open">Open</option>
+                        <option value="On Progress">On Progress</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Selesai">Selesai</option>
+                        <option value="Batal">Batal</option>
+                        <option value="Rusak">Rusak</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Unit</label>
+                    <select class="form-select" id="filter-unit">
+                        <option value="">Semua Unit</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Cari</label>
+                    <input type="text" class="form-control" id="filter-search" placeholder="Cari no tiket atau nama...">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary" onclick="loadTickets(1)">
+                        <i class="bi bi-search"></i> Cari
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="cursor:pointer;" onclick="toggleSort('nomor_tiket')">No Tiket <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nomor_tiket"></i></th>
+                            <th style="cursor:pointer;" onclick="toggleSort('tanggal')">Tanggal <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-tanggal"></i></th>
+                            <th style="cursor:pointer;" onclick="toggleSort('nama_pelapor')">Pelapor <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nama_pelapor"></i></th>
+                            <th>WhatsApp</th>
+                            <th>Ruangan</th>
+                            <th>Kerusakan</th>
+                            <th style="cursor:pointer;" onclick="toggleSort('status')">Status <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-status"></i></th>
+                            <th>Durasi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tiket-table-body">
+                        <tr>
+                            <td colspan="9" class="text-center">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination justify-content-center" id="pagination"></ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let currentSortBy = 'tanggal';
+let currentSortOrder = 'desc';
+
+// Abort controller to cancel stale fetch requests
+let abortController = null;
+
+function getAbortSignal() {
+    if (abortController) {
+        abortController.abort();
+    }
+    abortController = new AbortController();
+    return abortController.signal;
+}
+
+function toggleSort(column) {
+    if (currentSortBy === column) {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortBy = column;
+        currentSortOrder = 'asc';
+    }
+    // Update icons
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up sort-icon';
+    });
+    const icon = document.getElementById(`sort-icon-${column}`);
+    if (icon) {
+        icon.className = currentSortOrder === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down';
+    }
+    loadTickets(1);
+}
+
+async function loadUnits() {
+    const signal = getAbortSignal();
+    try {
+        const resp = await fetch('/api/master/units', { signal });
+        const units = await resp.json();
+        const select = document.getElementById('filter-unit');
+        select.innerHTML = '<option value="">Semua Unit</option>' +
+            units.map(u => `<option value="${u.id}">${u.nama_unit}</option>`).join('');
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+    }
+}
+
+function renderPagination(page, totalPages) {
+    const pages = [];
+    const maxButtons = 5;
+
+    if (totalPages <= maxButtons) {
+        for (let i = 1; i <= totalPages; i += 1) {
+            pages.push(i);
+        }
+    } else if (page <= 3) {
+        for (let i = 1; i <= maxButtons; i += 1) {
+            pages.push(i);
+        }
+    } else {
+        const start = Math.max(1, page - 2);
+        for (let i = start; i < start + maxButtons; i += 1) {
+            pages.push(i);
+        }
+    }
+
+    const trimmed = pages.filter((value, index) => pages.indexOf(value) === index && value > 0);
+    const pageItems = trimmed.map(p => {
+        const active = p === page ? ' active' : '';
+        const disabled = p === page ? ' disabled' : '';
+        return `<li class="page-item${active}${disabled}"><a class="page-link" href="#" onclick="loadTickets(${p}); return false;">${p}</a></li>`;
+    });
+
+    if (page > 4 && totalPages > maxButtons) {
+        pageItems.unshift('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+        pageItems.unshift('<li class="page-item"><a class="page-link" href="#" onclick="loadTickets(1); return false;">1</a></li>');
+    }
+
+    if (page < totalPages && totalPages > maxButtons) {
+        pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+    }
+
+    return pageItems.join('');
+}
+
+function loadTickets(page = 1) {
+    const status = document.getElementById('filter-status').value;
+    const unitId = document.getElementById('filter-unit').value;
+    const search = document.getElementById('filter-search').value;
+
+    let url = `/api/tiket/?page=${page}&limit=15&sort_by=${currentSortBy}&sort_order=${currentSortOrder}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (unitId) url += `&unit_id=${unitId}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+
+    const signal = getAbortSignal();
+    fetch(url, { signal })
+        .then(async r => {
+            const totalPages = Number(r.headers.get('x-total-pages') || 1);
+            const data = await r.json();
+            return { data, totalPages };
+        })
+        .then(({ data, totalPages }) => {
+            const tbody = document.getElementById('tiket-table-body');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada tiket ditemukan</td></tr>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = data.map(t => {
+                const date = new Date(t.tanggal).toLocaleString('id-ID', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const badgeClass = {
+                    'Open': 'bg-danger',
+                    'On Progress': 'bg-warning text-dark',
+                    'Pending': 'bg-secondary',
+                    'Selesai': 'bg-success'
+                }[t.status] || 'bg-primary';
+
+                return `<tr>
+                    <td><strong>${t.nomor_tiket}</strong></td>
+                    <td>${date}</td>
+                    <td>${t.nama_pelapor}</td>
+                    <td>${t.no_whatsapp}</td>
+                    <td>${t.unit?.nama_unit || '-'}</td>
+                    <td>${t.kerusakan?.nama_kerusakan || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${t.status}</span></td>
+                    <td>${t.durasi || '-'}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="archiveTicket(${t.id})">
+                                <i class="bi bi-archive"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = renderPagination(page, totalPages);
+            currentPage = page;
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+        });
+}
+
+async function archiveTicket(id) {
+    if (!confirm('Pindahkan tiket ini ke arsip?')) return;
+    const resp = await fetch(`/api/tiket/${id}`, { method: 'DELETE' });
+    if (!resp.ok) {
+        showToast('Gagal mengarsipkan tiket', 'error');
+        return;
+    }
+    showToast('Tiket dipindahkan ke arsip', 'success');
+    loadTickets(currentPage);
+}
+
+loadUnits();
+loadTickets();
+</script>
+{% endblock %}
+

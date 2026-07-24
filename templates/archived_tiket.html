@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block title %}Arsip Tiket{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <label class="form-label mb-0 me-1 fw-bold">Cari:</label>
+        <input type="text" class="form-control" style="width:200px;" id="filter-search" placeholder="No tiket atau nama...">
+        <button class="btn btn-primary" onclick="loadArchived(1)">
+            <i class="bi bi-search"></i> Cari
+        </button>
+        <button class="btn btn-outline-danger" id="btn-delete-selected" onclick="deleteSelected()" disabled>
+            <i class="bi bi-trash"></i> Hapus Terpilih
+        </button>
+        <button class="btn btn-danger" onclick="deleteAllArchived()">
+            <i class="bi bi-trash-fill"></i> Hapus Permanen Semua
+        </button>
+        <a href="/tiket" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="form-check-input" id="select-all" onchange="toggleSelectAll(this.checked)">
+                            </th>
+                            <th>No Tiket</th>
+                            <th>Tanggal</th>
+                            <th>Pelapor</th>
+                            <th>WhatsApp</th>
+                            <th>Ruangan</th>
+                            <th>Kerusakan</th>
+                            <th>Status</th>
+                            <th>Durasi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archived-table-body">
+                        <tr>
+                            <td colspan="10" class="text-center">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination justify-content-center" id="pagination"></ul>
+            </nav>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+const ITEMS_PER_PAGE = 10;
+let totalPages = 1;
+
+function renderPagination(page, totalPages) {
+    if (totalPages <= 1) return '';
+
+    const maxButtons = Math.min(5, totalPages);
+    let start = Math.max(1, page - Math.floor(maxButtons / 2));
+    let end = start + maxButtons - 1;
+    if (end > totalPages) {
+        end = totalPages;
+        start = Math.max(1, end - maxButtons + 1);
+    }
+
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+        pages.push(i);
+    }
+
+    const pageItems = [];
+
+    // Tombol Previous
+    pageItems.push('<li class="page-item' + (page === 1 ? ' disabled' : '') + '"><a class="page-link" href="#" onclick="' + (page > 1 ? 'loadArchived(' + (page - 1) + '); return false;' : 'return false;') + '">&laquo;</a></li>');
+
+    // Tombol halaman pertama jika tidak dalam range
+    if (start > 1) {
+        pageItems.push('<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(1); return false;">1</a></li>');
+        if (start > 2) {
+            pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+        }
+    }
+
+    pages.forEach(function(p) {
+        const active = p === page ? ' active' : '';
+        pageItems.push('<li class="page-item' + active + '"><a class="page-link" href="#" onclick="loadArchived(' + p + '); return false;">' + p + '</a></li>');
+    });
+
+    // Tombol halaman terakhir jika tidak dalam range
+    if (end < totalPages) {
+        if (end < totalPages - 1) {
+            pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+        }
+        pageItems.push('<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(' + totalPages + '); return false;">' + totalPages + '</a></li>');
+    }
+
+    // Tombol Next
+    pageItems.push('<li class="page-item' + (page === totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" onclick="' + (page < totalPages ? 'loadArchived(' + (page + 1) + '); return false;' : 'return false;') + '">&raquo;</a></li>');
+
+    return pageItems.join('');
+}
+
+function toggleSelectAll(checked) {
+    document.querySelectorAll('.checkbox-item').forEach(function(cb) { cb.checked = checked; });
+    updateDeleteButton();
+}
+
+function updateDeleteButton() {
+    const checked = document.querySelectorAll('.checkbox-item:checked').length;
+    const btn = document.getElementById('btn-delete-selected');
+    btn.disabled = checked === 0;
+    if (checked > 0) {
+        btn.innerHTML = '<i class="bi bi-trash"></i> Hapus ' + checked + ' Terpilih';
+    } else {
+        btn.innerHTML = '<i class="bi bi-trash"></i> Hapus Terpilih';
+    }
+}
+
+async function loadArchived(page) {
+    if (page === undefined) page = 1;
+    const search = document.getElementById('filter-search').value;
+    let url = '/api/tiket/archive?page=' + page + '&limit=' + ITEMS_PER_PAGE;
+    if (search) url += '&search=' + encodeURIComponent(search);
+
+    const resp = await fetch(url);
+    const result = await resp.json();
+    const data = result.data || [];
+    totalPages = result.total_pages || 1;
+
+    const tbody = document.getElementById('archived-table-body');
+    const paginationEl = document.getElementById('pagination');
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Tidak ada tiket arsip</td></tr>';
+        paginationEl.innerHTML = '';
+        document.getElementById('select-all').checked = false;
+        updateDeleteButton();
+        return;
+    }
+
+    tbody.innerHTML = data.map(function(t) {
+        const date = new Date(t.tanggal).toLocaleString('id-ID', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        const badgeClass = {
+            'Open': 'bg-danger',
+            'On Progress': 'bg-warning text-dark',
+            'Pending': 'bg-secondary',
+            'Selesai': 'bg-success',
+            'Batal': 'bg-dark',
+            'Rusak': 'bg-danger'
+        }[t.status] || 'bg-primary';
+
+        return '<tr>' +
+            '<td><input type="checkbox" class="form-check-input checkbox-item" value="' + t.id + '" onchange="updateDeleteButton()"></td>' +
+            '<td><strong>' + t.nomor_tiket + '</strong></td>' +
+            '<td>' + date + '</td>' +
+            '<td>' + t.nama_pelapor + '</td>' +
+            '<td>' + t.no_whatsapp + '</td>' +
+            '<td>' + (t.unit?.nama_unit || '-') + '</td>' +
+            '<td>' + (t.kerusakan?.nama_kerusakan || '-') + '</td>' +
+            '<td><span class="badge ' + badgeClass + '">' + t.status + '</span></td>' +
+            '<td>' + (t.durasi || '-') + '</td>' +
+            '<td>' +
+                '<div class="btn-group" role="group">' +
+                    '<a href="/tiket/' + t.id + '" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>' +
+                    '<button type="button" class="btn btn-sm btn-outline-success" onclick="restoreTicket(' + t.id + ')"><i class="bi bi-arrow-counterclockwise"></i></button>' +
+                '</div>' +
+            '</td>' +
+        '</tr>';
+    }).join('');
+
+    paginationEl.innerHTML = renderPagination(page, totalPages);
+    document.getElementById('select-all').checked = false;
+    updateDeleteButton();
+    currentPage = page;
+}
+
+async function restoreTicket(id) {
+    if (!confirm('Pulihkan tiket ini dari arsip?')) return;
+    const resp = await fetch('/api/tiket/archive/' + id + '/restore', { method: 'POST' });
+    if (!resp.ok) {
+        showToast('Gagal memulihkan tiket', 'error');
+        return;
+    }
+    showToast('Tiket berhasil dipulihkan', 'success');
+    loadArchived(currentPage);
+}
+
+async function deleteSelected() {
+    const checked = document.querySelectorAll('.checkbox-item:checked');
+    if (checked.length === 0) {
+        showToast('Pilih tiket yang akan dihapus', 'warning');
+        return;
+    }
+    if (!confirm('Hapus permanen ' + checked.length + ' tiket arsip terpilih? Tindakan ini tidak dapat dibatalkan.')) return;
+
+    const ids = Array.from(checked).map(function(cb) { return parseInt(cb.value); });
+    const resp = await fetch('/api/tiket/archive/batch', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ids })
+    });
+    if (!resp.ok) {
+        showToast('Gagal menghapus tiket terpilih', 'error');
+        return;
+    }
+    const data = await resp.json();
+    showToast(data.deleted + ' tiket arsip dihapus permanen', 'success');
+    loadArchived(currentPage);
+}
+
+async function deleteAllArchived() {
+    if (!confirm('Hapus permanen SEMUA tiket arsip? Tindakan ini tidak dapat dibatalkan.')) return;
+    const resp = await fetch('/api/tiket/archive', { method: 'DELETE' });
+    if (!resp.ok) {
+        showToast('Gagal menghapus tiket arsip', 'error');
+        return;
+    }
+    const data = await resp.json();
+    showToast(data.deleted + ' tiket arsip dihapus permanen', 'success');
+    loadArchived(1);
+}
+
+loadArchived(1);
+</script>
+{% endblock %}
