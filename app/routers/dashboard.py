@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+from fpdf import FPDF
 from ..database import get_db
 from ..models import Tiket, Unit, JenisKerusakan
 from ..config import WAHA_API_URL, WAHA_API_KEY, WAHA_SESSION_NAME
@@ -59,22 +60,40 @@ def get_dashboard_stats(
     today: bool = Query(False),
     db: Session = Depends(get_db),
 ):
-    """Mengembalikan statistik KPI dashboard berdasarkan data real ticket."""
+    """Mengembalikan statistik KPI dashboard berdasarkan data real ticket.
+    
+    - `total_hari_ini` SELALU dihitung dari tiket hari ini (tidak tergantung parameter `today`).
+    - Jika `today=True`, maka stat Open/On Progress/Pending/Selesai ikut difilter berdasarkan hari ini.
+    - Jika `today=False`, stat Open/On Progress/Pending/Selesai menampilkan total seluruh tiket.
+    """
     local_tz = datetime.now().astimezone().tzinfo
     today_local = datetime.now(local_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     today_start = today_local.astimezone(timezone.utc)
     today_end = (today_local + timedelta(days=1)).astimezone(timezone.utc)
 
-    base_query = db.query(Tiket).filter(Tiket.is_archived == False)
-    today_query = base_query.filter(Tiket.tanggal >= today_start, Tiket.tanggal < today_end) if today else base_query
+    # SELALU hitung jumlah tiket hari ini (tidak tergantung parameter `today`)
+    today_count = db.query(func.count(Tiket.id)).filter(
+        Tiket.tanggal >= today_start,
+        Tiket.tanggal < today_end,
+        Tiket.is_archived == False
+    ).scalar()
 
-    open_count = db.query(func.count(Tiket.id)).filter(Tiket.status == "Open", Tiket.is_archived == False).scalar()
-    on_progress = db.query(func.count(Tiket.id)).filter(Tiket.status == "On Progress", Tiket.is_archived == False).scalar()
-    pending = db.query(func.count(Tiket.id)).filter(Tiket.status == "Pending", Tiket.is_archived == False).scalar()
-    selesai = db.query(func.count(Tiket.id)).filter(Tiket.status == "Selesai", Tiket.is_archived == False).scalar()
+    # Base query untuk status counts, opsional difilter hari ini
+    base_query = db.query(Tiket).filter(Tiket.is_archived == False)
+    if today:
+        base_query = base_query.filter(Tiket.tanggal >= today_start, Tiket.tanggal < today_end)
+
+    open_count = base_query.filter(Tiket.status == "Open").count()
+    on_progress = base_query.filter(Tiket.status == "On Progress").count()
+    pending = base_query.filter(Tiket.status == "Pending").count()
+    selesai = base_query.filter(Tiket.status == "Selesai").count()
+
+    # Total semua tiket (tidak termasuk arsip) — tidak terpengaruh parameter today
+    total_all = db.query(func.count(Tiket.id)).filter(Tiket.is_archived == False).scalar()
 
     return {
-        "total_hari_ini": today_query.count() or 0,
+        "total_hari_ini": today_count or 0,
+        "total_all": total_all or 0,
         "open": open_count or 0,
         "on_progress": on_progress or 0,
         "pending": pending or 0,
@@ -175,6 +194,8 @@ def get_tiket_period(
                 "no_whatsapp": t.no_whatsapp,
                 "unit": t.unit.nama_unit if t.unit else None,
                 "kerusakan": t.kerusakan.nama_kerusakan if t.kerusakan else None,
+                "kategori": t.kerusakan.kategori if t.kerusakan else None,
+                "deskripsi": t.deskripsi,
                 "status": t.status,
                 "durasi": t.durasi,
                 "durasi_menit": t.durasi_menit,
@@ -273,6 +294,63 @@ def import_tiket_csv(
     return {"imported": imported, "count": len(imported)}
 
 
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Helvetica", "B", 14)
+        self.cell(0, 10, "Laporan Tiket Helpdesk IT", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.cell(0, 10, f"Halaman {self.page_no()}/{{nb}}", align="C")
+
+
+def generate_pdf(data: list) -> bytes:
+    """Generate PDF dari data tiket."""
+    pdf = PDF(orientation="L", unit="mm", format="A4")
+    pdf.alias_nb_pages()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 9)
+
+    # Column widths (landscape A4 = 297mm width, with margins ~277mm usable)
+    col_widths = [8, 25, 28, 35, 28, 28, 28, 22, 40, 18, 12, 12]
+    headers = [
+        "No", "No Tiket", "Tanggal", "Pelapor", "No WA",
+        "Unit", "Kerusakan", "Kategori", "Deskripsi", "Status",
+        "Durasi", "Menit"
+    ]
+
+    # Header row
+    for i, h in enumerate(headers):
+        pdf.cell(col_widths[i], 8, h, border=1, align="C")
+    pdf.ln()
+
+    # Data rows
+    pdf.set_font("Helvetica", "", 7)
+    for idx, r in enumerate(data, start=1):
+        row_data = [
+            str(idx),
+            r.get("nomor_tiket", ""),
+            r.get("tanggal", "")[:10] if r.get("tanggal") else "",
+            r.get("nama_pelapor", ""),
+            r.get("no_whatsapp", ""),
+            r.get("unit", ""),
+            r.get("kerusakan", ""),
+            r.get("kategori", ""),
+            r.get("deskripsi", "")[:40],
+            r.get("status", ""),
+            r.get("durasi", ""),
+            str(r.get("durasi_menit", "") or ""),
+        ]
+        for i, val in enumerate(row_data):
+            pdf.cell(col_widths[i], 6, val, border=1, align="C" if i == 0 else "L")
+        pdf.ln()
+
+    return pdf.output()
+
+
 @router.get("/export")
 def export_tiket_period(
     year: int = Query(None),
@@ -280,17 +358,34 @@ def export_tiket_period(
     format: str = Query("csv"),
     db: Session = Depends(get_db),
 ):
-    """Export tiket untuk periode sebagai CSV (default) atau JSON."""
+    """Export tiket untuk periode sebagai CSV (default) atau PDF."""
     data = get_tiket_period(year=year, month=month, db=db)
 
-    if format == "json":
-        return data
+    if format == "pdf":
+        pdf_bytes = generate_pdf(data)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=tiket_export.pdf"}
+        )
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "nomor_tiket", "tanggal", "nama_pelapor", "no_whatsapp", "unit", "kerusakan", "status", "durasi"])
+    writer.writerow([
+        "id", "nomor_tiket", "tanggal", "nama_pelapor", "no_whatsapp",
+        "unit", "kerusakan", "kategori", "deskripsi", "status",
+        "durasi", "durasi_menit"
+    ])
     for r in data:
-        writer.writerow([r["id"], r["nomor_tiket"], r["tanggal"], r["nama_pelapor"], r["no_whatsapp"], r["unit"], r["kerusakan"], r["status"], r["durasi"]])
+        writer.writerow([
+            r["id"], r["nomor_tiket"], r["tanggal"], r["nama_pelapor"],
+            r["no_whatsapp"], r["unit"], r["kerusakan"], r.get("kategori", ""),
+            r.get("deskripsi", ""), r["status"], r["durasi"], r.get("durasi_menit", "")
+        ])
 
     csv_data = output.getvalue()
-    return Response(content=csv_data, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=tiket_export.csv"})
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=tiket_export.csv"}
+    )

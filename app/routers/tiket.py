@@ -1,3 +1,5 @@
+import io
+import csv
 import os
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -5,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Q
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from fpdf import FPDF
 from ..database import get_db, has_column
 from ..models import Tiket, Progress, Unit, JenisKerusakan
 from ..schemas import TiketCreate, TiketUpdateStatus, TiketResponse
@@ -486,6 +489,162 @@ async def update_tiket_status(
             db.commit()
 
     return tiket
+
+
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Helvetica", "B", 14)
+        self.cell(0, 10, "Laporan Tiket Helpdesk IT", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.cell(0, 10, f"Halaman {self.page_no()}/{{nb}}", align="C")
+
+
+def _generate_pdf(data: list) -> bytes:
+    """Generate PDF dari data tiket."""
+    pdf = PDF(orientation="L", unit="mm", format="A4")
+    pdf.alias_nb_pages()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 9)
+
+    # Column widths (landscape A4)
+    col_widths = [8, 25, 28, 35, 28, 28, 28, 22, 40, 18, 12, 12]
+    headers = [
+        "No", "No Tiket", "Tanggal", "Pelapor", "No WA",
+        "Unit", "Kerusakan", "Kategori", "Deskripsi", "Status",
+        "Durasi", "Menit"
+    ]
+
+    # Header row
+    for i, h in enumerate(headers):
+        pdf.cell(col_widths[i], 8, h, border=1, align="C")
+    pdf.ln()
+
+    # Data rows
+    pdf.set_font("Helvetica", "", 7)
+    for idx, r in enumerate(data, start=1):
+        row_data = [
+            str(idx),
+            r.get("nomor_tiket", ""),
+            r.get("tanggal", "")[:10] if r.get("tanggal") else "",
+            r.get("nama_pelapor", ""),
+            r.get("no_whatsapp", ""),
+            r.get("unit", ""),
+            r.get("kerusakan", ""),
+            r.get("kategori", ""),
+            r.get("deskripsi", "")[:40],
+            r.get("status", ""),
+            r.get("durasi", ""),
+            str(r.get("durasi_menit", "") or ""),
+        ]
+        for i, val in enumerate(row_data):
+            pdf.cell(col_widths[i], 6, val, border=1, align="C" if i == 0 else "L")
+        pdf.ln()
+
+    return pdf.output()
+
+
+@router.get("/export")
+def export_tiket(
+    status: Optional[str] = Query(None),
+    unit_id: Optional[int] = Query(None),
+    search: Optional[str] = Query(None),
+    today: bool = Query(False),
+    sort_by: str = Query("tanggal"),
+    sort_order: str = Query("desc"),
+    format: str = Query("csv"),
+    db: Session = Depends(get_db),
+):
+    """Export tiket dengan filter lengkap sebagai CSV (default) atau PDF."""
+    query = db.query(Tiket).filter(Tiket.is_archived == False)
+
+    if status:
+        query = query.filter(Tiket.status == status)
+    if unit_id:
+        query = query.filter(Tiket.unit_id == unit_id)
+    if search:
+        query = query.filter(
+            Tiket.nomor_tiket.contains(search) |
+            Tiket.nama_pelapor.contains(search)
+        )
+    if today:
+        local_tz = datetime.now().astimezone().tzinfo
+        today_start_local = datetime.now(local_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end_local = today_start_local + timedelta(days=1)
+        today_start_utc = today_start_local.astimezone(timezone.utc)
+        today_end_utc = today_end_local.astimezone(timezone.utc)
+        query = query.filter(Tiket.tanggal >= today_start_utc, Tiket.tanggal < today_end_utc)
+
+    # Sorting
+    sort_column = getattr(Tiket, sort_by, None)
+    if sort_column is None:
+        sort_column = Tiket.tanggal
+    if sort_order == "asc":
+        query = query.order_by(sort_column.asc())
+    else:
+        query = query.order_by(sort_column.desc())
+
+    tiket_list = query.all()
+
+    # Build export data
+    local_tz = datetime.now().astimezone().tzinfo
+    export_data = []
+    for t in tiket_list:
+        tanggal_local = t.tanggal
+        if tanggal_local is not None:
+            try:
+                tanggal_local = tanggal_local.astimezone(local_tz)
+            except Exception:
+                pass
+        export_data.append({
+            "id": t.id,
+            "nomor_tiket": t.nomor_tiket,
+            "tanggal": tanggal_local.isoformat() if tanggal_local else None,
+            "nama_pelapor": t.nama_pelapor,
+            "no_whatsapp": t.no_whatsapp,
+            "unit": t.unit.nama_unit if t.unit else None,
+            "kerusakan": t.kerusakan.nama_kerusakan if t.kerusakan else None,
+            "kategori": t.kerusakan.kategori if t.kerusakan else None,
+            "deskripsi": t.deskripsi or "",
+            "status": t.status,
+            "durasi": t.durasi or "",
+            "durasi_menit": t.durasi_menit or "",
+        })
+
+    if format == "pdf":
+        pdf_bytes = _generate_pdf(export_data)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=tiket_export.pdf"}
+        )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "nomor_tiket", "tanggal", "nama_pelapor", "no_whatsapp",
+        "unit", "kerusakan", "kategori", "deskripsi", "status",
+        "durasi", "durasi_menit"
+    ])
+    for r in export_data:
+        writer.writerow([
+            r["id"], r["nomor_tiket"], r["tanggal"], r["nama_pelapor"],
+            r["no_whatsapp"], r["unit"], r["kerusakan"], r["kategori"],
+            r["deskripsi"], r["status"], r["durasi"], r["durasi_menit"]
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=tiket_export.csv"
+        }
+    )
 
 
 @router.delete("/{tiket_id}", response_model=TiketResponse)

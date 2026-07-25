@@ -35,10 +35,16 @@
                     <label class="form-label">Cari</label>
                     <input type="text" class="form-control" id="filter-search" placeholder="Cari no tiket atau nama...">
                 </div>
-                <div class="col-md-2 d-grid">
+                <div class="col-md-1 d-grid">
                     <button class="btn btn-primary" onclick="loadTickets(1)">
                         <i class="bi bi-search"></i> Cari
                     </button>
+                </div>
+                <div class="col-md-3 d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button class="btn btn-success" onclick="exportCSV()">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+                    </button>
+                    <!-- Export PDF sementara disembunyikan -->
                 </div>
             </div>
         </div>
@@ -240,6 +246,25 @@ async function archiveTicket(id) {
     showToast('Tiket dipindahkan ke arsip', 'success');
     loadTickets(currentPage);
 }
+
+function getExportParams() {
+    const status = document.getElementById('filter-status').value;
+    const unitId = document.getElementById('filter-unit').value;
+    const search = document.getElementById('filter-search').value;
+    let params = [];
+    if (status) params.push(`status=${encodeURIComponent(status)}`);
+    if (unitId) params.push(`unit_id=${unitId}`);
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    params.push(`sort_by=${currentSortBy}&sort_order=${currentSortOrder}`);
+    return params.join('&');
+}
+
+function exportCSV() {
+    const params = getExportParams();
+    window.location.href = `/api/tiket/export?${params}&format=csv`;
+}
+
+// Export PDF disembunyikan sementara
 
 loadUnits();
 loadTickets();

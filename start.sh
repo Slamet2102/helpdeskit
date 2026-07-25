@@ -102,6 +102,7 @@ if ! python -c "import uvicorn" 2>/dev/null; then
         aiofiles \
         httpx \
         pydantic \
+        fpdf2 \
         --quiet
     echo -e "${H_GREEN}[OK]${H_RESET} Dependencies installed."
 else

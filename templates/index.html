@@ -150,7 +150,12 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label d-block">Ekspor</label>
-                    <button class="btn btn-success w-100" id="report-export">Unduh CSV</button>
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-success" id="report-export-csv" title="Export sebagai CSV">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                        </button>
+                        <!-- Export PDF sementara disembunyikan -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -479,10 +484,12 @@ function loadReport() {
         });
 }
 
-function exportReport() {
+function exportReportCSV() {
     const params = getReportParams();
-    window.location.href = `/api/dashboard/export${params}`;
+    window.location.href = `/api/dashboard/export${params}${params ? '&' : '?'}format=csv`;
 }
+
+// Export Report PDF disembunyikan sementara
 
 document.getElementById('filter-status').addEventListener('change', () => {
     selectedToday = false;
@@ -493,7 +500,8 @@ document.getElementById('filter-status').addEventListener('change', () => {
     loadTickets(1);
 });
 document.getElementById('report-refresh').addEventListener('click', () => loadReport());
-document.getElementById('report-export').addEventListener('click', () => exportReport());
+document.getElementById('report-export-csv').addEventListener('click', () => exportReportCSV());
+// report-export-pdf event listener dihapus sementara
 
 bindDashboardFilters();
 loadStats();

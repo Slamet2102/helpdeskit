@@ -27,7 +27,7 @@ source "$VENV_DIR/bin/activate"
 # Install dependencies jika perlu
 if ! python -c "import uvicorn" 2>/dev/null; then
     pip install --upgrade pip --quiet
-    pip install fastapi uvicorn sqlalchemy jinja2 python-dotenv aiofiles httpx pydantic --quiet
+    pip install fastapi uvicorn sqlalchemy jinja2 python-dotenv aiofiles httpx pydantic fpdf2 --quiet
 fi
 
 # Jalankan server di background

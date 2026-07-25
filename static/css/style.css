@@ -309,6 +309,7 @@ body {
 .stat-card-secondary { background: linear-gradient(135deg, #6c757d, #94a3b8); }
 .stat-card-success { background: linear-gradient(135deg, #198754, #22c55e); }
 .stat-card-info { background: linear-gradient(135deg, #0dcaf0, #06b6d4); }
+.stat-card-dark { background: linear-gradient(135deg, #1e293b, #334155); }
 
 .stat-card:hover {
     transform: translateY(-4px);
