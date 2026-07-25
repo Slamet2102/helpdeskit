@@ -99,8 +99,9 @@ async function loadMasterData() {
             fetch('/api/master/kerusakan').then(r => r.json())
         ]);
 
-        allUnits = units;
-        allKerusakan = kerusakan;
+        // Hanya tampilkan data dengan status Aktif untuk form tiket
+        allUnits = units.filter(u => u.status === 'Aktif');
+        allKerusakan = kerusakan.filter(k => k.status === 'Aktif');
 
         renderUnitOptions('');
         renderKerusakanOptions('');
