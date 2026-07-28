@@ -41,10 +41,14 @@
                     </button>
                 </div>
                 <div class="col-md-3 d-grid gap-2 d-md-flex justify-content-md-end">
-                    <button class="btn btn-success" onclick="exportCSV()">
+                    <!-- Arsipkan selalu terlihat -->
+                    <button class="btn btn-outline-danger" onclick="archiveSelected()" title="Arsipkan tiket terpilih">
+                        <i class="bi bi-archive"></i> Arsipkan
+                    </button>
+                    <!-- Export CSV hanya muncul jika ada tiket dipilih -->
+                    <button class="btn btn-outline-success" id="btn-export-selected" style="display:none;" onclick="exportSelectedCSV()" title="Export CSV Terpilih">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
                     </button>
-                    <!-- Export PDF sementara disembunyikan -->
                 </div>
             </div>
         </div>
@@ -57,6 +61,9 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th style="width:40px;">
+                                <input type="checkbox" class="form-check-input" id="select-all" onchange="toggleSelectAll(this.checked)" title="Pilih semua">
+                            </th>
                             <th style="cursor:pointer;" onclick="toggleSort('nomor_tiket')">No Tiket <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nomor_tiket"></i></th>
                             <th style="cursor:pointer;" onclick="toggleSort('tanggal')">Tanggal <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-tanggal"></i></th>
                             <th style="cursor:pointer;" onclick="toggleSort('nama_pelapor')">Pelapor <i class="bi bi-arrow-down-up sort-icon" id="sort-icon-nama_pelapor"></i></th>
@@ -70,7 +77,7 @@
                     </thead>
                     <tbody id="tiket-table-body">
                         <tr>
-                            <td colspan="9" class="text-center">Memuat data...</td>
+                            <td colspan="10" class="text-center">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -170,6 +177,10 @@ function renderPagination(page, totalPages) {
 }
 
 function loadTickets(page = 1) {
+    // Uncheck select-all when reloading
+    const selectAll = document.getElementById('select-all');
+    if (selectAll) selectAll.checked = false;
+
     const status = document.getElementById('filter-status').value;
     const unitId = document.getElementById('filter-unit').value;
     const search = document.getElementById('filter-search').value;
@@ -189,8 +200,9 @@ function loadTickets(page = 1) {
         .then(({ data, totalPages }) => {
             const tbody = document.getElementById('tiket-table-body');
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada tiket ditemukan</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center">Tidak ada tiket ditemukan</td></tr>';
                 document.getElementById('pagination').innerHTML = '';
+                updateBatchToolbar();
                 return;
             }
 
@@ -206,6 +218,9 @@ function loadTickets(page = 1) {
                 }[t.status] || 'bg-primary';
 
                 return `<tr>
+                    <td>
+                        <input type="checkbox" class="form-check-input ticket-select" value="${t.id}" onchange="updateBatchToolbar()">
+                    </td>
                     <td><strong>${t.nomor_tiket}</strong></td>
                     <td>${date}</td>
                     <td>${t.nama_pelapor}</td>
@@ -230,6 +245,7 @@ function loadTickets(page = 1) {
             const pagination = document.getElementById('pagination');
             pagination.innerHTML = renderPagination(page, totalPages);
             currentPage = page;
+            updateBatchToolbar();
         })
         .catch(err => {
             if (err.name === 'AbortError') return;
@@ -262,6 +278,65 @@ function getExportParams() {
 function exportCSV() {
     const params = getExportParams();
     window.location.href = `/api/tiket/export?${params}&format=csv`;
+}
+
+// ===== Checklist / Batch Functions =====
+
+function toggleSelectAll(checked) {
+    document.querySelectorAll('.ticket-select').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateBatchToolbar();
+}
+
+function updateBatchToolbar() {
+    const selected = document.querySelectorAll('.ticket-select:checked').length;
+    const btnExport = document.getElementById('btn-export-selected');
+    if (btnExport) {
+        btnExport.style.display = selected > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.ticket-select:checked'))
+        .map(cb => parseInt(cb.value));
+}
+
+async function archiveSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Tidak ada tiket yang dipilih', 'warning');
+        return;
+    }
+    if (!confirm(`Arsipkan ${ids.length} tiket terpilih?`)) return;
+
+    try {
+        const resp = await fetch('/api/tiket/batch/archive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            showToast(err.detail || 'Gagal mengarsipkan tiket', 'error');
+            return;
+        }
+        showToast(`${ids.length} tiket berhasil diarsipkan`, 'success');
+        loadTickets(currentPage);
+    } catch (err) {
+        showToast('Terjadi kesalahan jaringan', 'error');
+    }
+}
+
+function exportSelectedCSV() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showToast('Tidak ada tiket yang dipilih', 'warning');
+        return;
+    }
+    const idsParam = ids.join(',');
+    const params = getExportParams();
+    window.location.href = `/api/tiket/export?${params}&ids=${idsParam}&format=csv`;
 }
 
 // Export PDF disembunyikan sementara

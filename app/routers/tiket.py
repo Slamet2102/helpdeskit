@@ -254,6 +254,24 @@ def get_tiket_list(
     return tiket_list
 
 
+@router.post("/batch/archive", response_model=dict)
+def batch_archive_tiket(req: BatchDeleteRequest, db: Session = Depends(get_db)):
+    """Arsipkan banyak tiket sekaligus berdasarkan ID."""
+    if not req.ids:
+        raise HTTPException(status_code=400, detail="Tidak ada ID tiket yang diberikan")
+    archived_count = 0
+    for tid in req.ids:
+        tiket = db.query(Tiket).filter(Tiket.id == tid, Tiket.is_archived == False).first()
+        if tiket:
+            tiket.is_archived = True
+            db.add(tiket)
+            archived_count += 1
+    db.commit()
+    if archived_count == 0:
+        raise HTTPException(status_code=404, detail="Tiket tidak ditemukan atau sudah diarsipkan")
+    return {"archived": archived_count}
+
+
 @router.get("/archive")
 def get_archived_tiket(
     search: Optional[str] = Query(None),
@@ -557,11 +575,17 @@ def export_tiket(
     sort_by: str = Query("tanggal"),
     sort_order: str = Query("desc"),
     format: str = Query("csv"),
+    ids: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Export tiket dengan filter lengkap sebagai CSV (default) atau PDF."""
+    """Export tiket dengan filter lengkap sebagai CSV (default) atau PDF.
+    Parameter `ids` dapat digunakan untuk membatasi export ke ID tiket tertentu (dipisah koma)."""
     query = db.query(Tiket).filter(Tiket.is_archived == False)
 
+    if ids:
+        id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
+        if id_list:
+            query = query.filter(Tiket.id.in_(id_list))
     if status:
         query = query.filter(Tiket.status == status)
     if unit_id:
