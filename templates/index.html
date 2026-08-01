@@ -408,7 +408,7 @@ function loadTickets(page = 1) {
                     'Selesai': 'bg-success'
                 }[t.status] || 'bg-primary';
 
-                return `<tr>
+                return `<tr style="cursor:pointer;" onclick="location.href='/tiket/${t.id}'">
                     <td><strong>${t.nomor_tiket}</strong></td>
                     <td>${date}</td>
                     <td>${t.nama_pelapor}</td>
@@ -416,7 +416,7 @@ function loadTickets(page = 1) {
                     <td>${t.kerusakan?.nama_kerusakan || '-'}</td>
                     <td><span class="badge ${badgeClass}">${t.status}</span></td>
                     <td>
-                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
                             <i class="bi bi-eye"></i> Detail
                         </a>
                     </td>
@@ -464,7 +464,7 @@ function loadReport() {
                     'Selesai': 'bg-success'
                 }[t.status] || 'bg-primary';
 
-                return `<tr>
+                return `<tr style="cursor:pointer;" onclick="location.href='/tiket/${t.id}'">
                     <td><strong>${t.nomor_tiket}</strong></td>
                     <td>${date}</td>
                     <td>${t.nama_pelapor}</td>
@@ -472,7 +472,7 @@ function loadReport() {
                     <td>${t.kerusakan || '-'}</td>
                     <td><span class="badge ${badgeClass}">${t.status}</span></td>
                     <td>
-                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                        <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
                             <i class="bi bi-eye"></i> Detail
                         </a>
                     </td>

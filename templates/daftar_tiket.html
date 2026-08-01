@@ -216,9 +216,9 @@ function loadTickets(page = 1) {
                     'Selesai': 'bg-success'
                 }[t.status] || 'bg-primary';
 
-                return `<tr>
+                return `<tr style="cursor:pointer;" onclick="location.href='/tiket/${t.id}'">
                     <td>
-                        <input type="checkbox" class="form-check-input ticket-select" value="${t.id}">
+                        <input type="checkbox" class="form-check-input ticket-select" value="${t.id}" onclick="event.stopPropagation()">
                     </td>
                     <td><strong>${t.nomor_tiket}</strong></td>
                     <td>${date}</td>
@@ -230,10 +230,10 @@ function loadTickets(page = 1) {
                     <td>${t.durasi || '-'}</td>
                     <td>
                         <div class="btn-group" role="group">
-                            <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary">
+                            <a href="/tiket/${t.id}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="archiveTicket(${t.id})">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); archiveTicket(${t.id})">
                                 <i class="bi bi-archive"></i>
                             </button>
                         </div>
