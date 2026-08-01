@@ -2,12 +2,11 @@ import io
 import csv
 import httpx
 import logging
-from fastapi import APIRouter, Depends, Query, Response, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from fpdf import FPDF
 from ..database import get_db
 from ..models import Tiket, Unit, JenisKerusakan
 from ..config import WAHA_API_URL, WAHA_API_KEY, WAHA_SESSION_NAME
@@ -292,100 +291,3 @@ def import_tiket_csv(
 
     db.commit()
     return {"imported": imported, "count": len(imported)}
-
-
-class PDF(FPDF):
-    def header(self):
-        self.set_font("Helvetica", "B", 14)
-        self.cell(0, 10, "Laporan Tiket Helpdesk IT", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.ln(5)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.cell(0, 10, f"Halaman {self.page_no()}/{{nb}}", align="C")
-
-
-def generate_pdf(data: list) -> bytes:
-    """Generate PDF dari data tiket."""
-    pdf = PDF(orientation="L", unit="mm", format="A4")
-    pdf.alias_nb_pages()
-    pdf.set_auto_page_break(auto=True, margin=20)
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 9)
-
-    # Column widths (landscape A4 = 297mm width, with margins ~277mm usable)
-    col_widths = [8, 25, 28, 35, 28, 28, 28, 22, 40, 18, 12, 12]
-    headers = [
-        "No", "No Tiket", "Tanggal", "Pelapor", "No WA",
-        "Unit", "Kerusakan", "Kategori", "Deskripsi", "Status",
-        "Durasi", "Menit"
-    ]
-
-    # Header row
-    for i, h in enumerate(headers):
-        pdf.cell(col_widths[i], 8, h, border=1, align="C")
-    pdf.ln()
-
-    # Data rows
-    pdf.set_font("Helvetica", "", 7)
-    for idx, r in enumerate(data, start=1):
-        row_data = [
-            str(idx),
-            r.get("nomor_tiket", ""),
-            r.get("tanggal", "")[:10] if r.get("tanggal") else "",
-            r.get("nama_pelapor", ""),
-            r.get("no_whatsapp", ""),
-            r.get("unit", ""),
-            r.get("kerusakan", ""),
-            r.get("kategori", ""),
-            r.get("deskripsi", "")[:40],
-            r.get("status", ""),
-            r.get("durasi", ""),
-            str(r.get("durasi_menit", "") or ""),
-        ]
-        for i, val in enumerate(row_data):
-            pdf.cell(col_widths[i], 6, val, border=1, align="C" if i == 0 else "L")
-        pdf.ln()
-
-    return pdf.output()
-
-
-@router.get("/export")
-def export_tiket_period(
-    year: int = Query(None),
-    month: int = Query(None, ge=1, le=12),
-    format: str = Query("csv"),
-    db: Session = Depends(get_db),
-):
-    """Export tiket untuk periode sebagai CSV (default) atau PDF."""
-    data = get_tiket_period(year=year, month=month, db=db)
-
-    if format == "pdf":
-        pdf_bytes = generate_pdf(data)
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": "attachment; filename=tiket_export.pdf"}
-        )
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
-        "id", "nomor_tiket", "tanggal", "nama_pelapor", "no_whatsapp",
-        "unit", "kerusakan", "kategori", "deskripsi", "status",
-        "durasi", "durasi_menit"
-    ])
-    for r in data:
-        writer.writerow([
-            r["id"], r["nomor_tiket"], r["tanggal"], r["nama_pelapor"],
-            r["no_whatsapp"], r["unit"], r["kerusakan"], r.get("kategori", ""),
-            r.get("deskripsi", ""), r["status"], r["durasi"], r.get("durasi_menit", "")
-        ])
-
-    csv_data = output.getvalue()
-    return Response(
-        content=csv_data,
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=tiket_export.csv"}
-    )

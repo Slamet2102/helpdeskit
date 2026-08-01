@@ -20,9 +20,15 @@ WAHA_TIMEOUT = 90
 
 
 def _normalize_whatsapp_number(to: str) -> str:
-    """Normalisasi nomor WhatsApp agar WAHA menerima format internasional yang konsisten."""
+    """Normalisasi nomor WhatsApp agar WAHA menerima format internasional yang konsisten.
+
+    Jika nilai sudah berupa chat ID (mengandung `@`, mis. `...@c.us` atau `...@g.us`),
+    maka nilai TIDAK dinormalisasi agar suffix grup/chat tidak rusak.
+    """
     if not to:
         return ""
+    if "@" in str(to):
+        return str(to).strip()
     digits = ''.join(ch for ch in str(to) if ch.isdigit())
     if not digits:
         return str(to).strip()
@@ -34,14 +40,22 @@ def _normalize_whatsapp_number(to: str) -> str:
 
 
 def _ensure_chat_id(to: str) -> str:
-    """Pastikan nomor memiliki suffix @c.us untuk WAHA."""
-    to = _normalize_whatsapp_number(to).strip()
+    """Pastikan nomor memiliki suffix yang benar untuk WAHA (@c.us untuk pribadi, @g.us untuk grup).
+
+    - ID yang sudah punya suffix `@g.us` atau `@c.us` DIKEMBALIKAN apa adanya (grup tidak rusak).
+    - Nomor telepon dinormalisasi lalu diberi suffix `@c.us`.
+    """
+    to = str(to).strip()
     if not to:
         return to
-    if not to.endswith("@g.us") and not to.endswith("@c.us"):
-        if "@" not in to:
-            to = to + "@c.us"
-    return to
+    if to.endswith("@g.us") or to.endswith("@c.us"):
+        return to
+    normalized = _normalize_whatsapp_number(to)
+    if not normalized:
+        return to
+    if "@" in normalized:
+        return normalized
+    return normalized + "@c.us"
 
 
 def _get_headers() -> dict:

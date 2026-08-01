@@ -45,8 +45,8 @@
                     <button class="btn btn-outline-danger" onclick="archiveSelected()" title="Arsipkan tiket terpilih">
                         <i class="bi bi-archive"></i> Arsipkan
                     </button>
-                    <!-- Export CSV hanya muncul jika ada tiket dipilih -->
-                    <button class="btn btn-outline-success" id="btn-export-selected" style="display:none;" onclick="exportSelectedCSV()" title="Export CSV Terpilih">
+                    <!-- Export CSV selalu terlihat: export tiket terpilih, atau semua hasil filter jika tidak ada yang dipilih -->
+                    <button class="btn btn-outline-success" id="btn-export-selected" onclick="exportSelectedCSV()" title="Export CSV (terpilih atau semua hasil filter)">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
                     </button>
                 </div>
@@ -202,7 +202,6 @@ function loadTickets(page = 1) {
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center">Tidak ada tiket ditemukan</td></tr>';
                 document.getElementById('pagination').innerHTML = '';
-                updateBatchToolbar();
                 return;
             }
 
@@ -219,7 +218,7 @@ function loadTickets(page = 1) {
 
                 return `<tr>
                     <td>
-                        <input type="checkbox" class="form-check-input ticket-select" value="${t.id}" onchange="updateBatchToolbar()">
+                        <input type="checkbox" class="form-check-input ticket-select" value="${t.id}">
                     </td>
                     <td><strong>${t.nomor_tiket}</strong></td>
                     <td>${date}</td>
@@ -245,7 +244,6 @@ function loadTickets(page = 1) {
             const pagination = document.getElementById('pagination');
             pagination.innerHTML = renderPagination(page, totalPages);
             currentPage = page;
-            updateBatchToolbar();
         })
         .catch(err => {
             if (err.name === 'AbortError') return;
@@ -286,15 +284,6 @@ function toggleSelectAll(checked) {
     document.querySelectorAll('.ticket-select').forEach(cb => {
         cb.checked = checked;
     });
-    updateBatchToolbar();
-}
-
-function updateBatchToolbar() {
-    const selected = document.querySelectorAll('.ticket-select:checked').length;
-    const btnExport = document.getElementById('btn-export-selected');
-    if (btnExport) {
-        btnExport.style.display = selected > 0 ? 'inline-block' : 'none';
-    }
 }
 
 function getSelectedIds() {
@@ -331,7 +320,8 @@ async function archiveSelected() {
 function exportSelectedCSV() {
     const ids = getSelectedIds();
     if (ids.length === 0) {
-        showToast('Tidak ada tiket yang dipilih', 'warning');
+        // Tidak ada yang dipilih -> export semua tiket sesuai filter aktif
+        exportCSV();
         return;
     }
     const idsParam = ids.join(',');

@@ -336,7 +336,7 @@ def delete_archived_tiket_batch(req: BatchDeleteRequest, db: Session = Depends(g
     return {"deleted": deleted_count}
 
 
-@router.get("/{tiket_id}", response_model=TiketResponse)
+@router.get("/{tiket_id:int}", response_model=TiketResponse)
 def get_tiket_detail(tiket_id: int, db: Session = Depends(get_db)):
     """Dapatkan detail tiket."""
     tiket = db.query(Tiket).filter(Tiket.id == tiket_id).first()
@@ -566,8 +566,29 @@ def _generate_pdf(data: list) -> bytes:
     return pdf.output()
 
 
+def _hitung_numerator_denominator(durasi_menit):
+    """Hitung nilai Numerator dan Denumerator berdasarkan durasi.
+
+    Aturan:
+    - Jika durasi >= 60 menit (>= 1 jam / 60 menit) -> Numerator = 1, Denumerator = 0
+    - Jika durasi <  60 menit (<  1 jam / 60 menit) -> Numerator = 0, Denumerator = 1
+    - Jika durasi kosong (None / "")                -> Numerator = 0, Denumerator = 0
+    """
+    if durasi_menit is None or durasi_menit == "":
+        return 0, 0
+    try:
+        durasi_menit = int(durasi_menit)
+    except (TypeError, ValueError):
+        return 0, 0
+    if durasi_menit >= 60:
+        return 1, 0
+    return 0, 1
+
+
 @router.get("/export")
 def export_tiket(
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
     status: Optional[str] = Query(None),
     unit_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
@@ -579,7 +600,9 @@ def export_tiket(
     db: Session = Depends(get_db),
 ):
     """Export tiket dengan filter lengkap sebagai CSV (default) atau PDF.
-    Parameter `ids` dapat digunakan untuk membatasi export ke ID tiket tertentu (dipisah koma)."""
+    - Filter periode: `year` (wajib untuk periode) + `month` (opsional).
+    - Filter lain: `status`, `unit_id`, `search`, `today`, `sort_by`, `sort_order`, `ids`.
+    - Endpoint terpadu: dipakai oleh Dashboard (periode) dan Daftar Tiket (filter)."""
     query = db.query(Tiket).filter(Tiket.is_archived == False)
 
     if ids:
@@ -602,6 +625,22 @@ def export_tiket(
         today_start_utc = today_start_local.astimezone(timezone.utc)
         today_end_utc = today_end_local.astimezone(timezone.utc)
         query = query.filter(Tiket.tanggal >= today_start_utc, Tiket.tanggal < today_end_utc)
+
+    # Filter periode (dari Dashboard): year wajib, month opsional
+    if year is not None:
+        local_tz = datetime.now().astimezone().tzinfo
+        if month is not None:
+            start_local = datetime(year, month, 1, tzinfo=local_tz)
+            if month == 12:
+                end_local = datetime(year + 1, 1, 1, tzinfo=local_tz)
+            else:
+                end_local = datetime(year, month + 1, 1, tzinfo=local_tz)
+        else:
+            start_local = datetime(year, 1, 1, tzinfo=local_tz)
+            end_local = datetime(year + 1, 1, 1, tzinfo=local_tz)
+        start = start_local.astimezone(timezone.utc)
+        end = end_local.astimezone(timezone.utc)
+        query = query.filter(Tiket.tanggal >= start, Tiket.tanggal < end)
 
     # Sorting
     sort_column = getattr(Tiket, sort_by, None)
@@ -636,11 +675,11 @@ def export_tiket(
             "deskripsi": t.deskripsi or "",
             "status": t.status,
             "durasi": t.durasi or "",
-            "durasi_menit": t.durasi_menit or "",
+            "durasi_menit": t.durasi_menit,
         })
 
     if format == "pdf":
-        pdf_bytes = _generate_pdf(export_data)
+        pdf_bytes = bytes(_generate_pdf(export_data))
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -652,13 +691,15 @@ def export_tiket(
     writer.writerow([
         "id", "nomor_tiket", "tanggal", "nama_pelapor", "no_whatsapp",
         "unit", "kerusakan", "kategori", "deskripsi", "status",
-        "durasi", "durasi_menit"
+        "durasi", "numerator", "denumerator"
     ])
     for r in export_data:
+        numerator, denumerator = _hitung_numerator_denominator(r.get("durasi_menit"))
         writer.writerow([
             r["id"], r["nomor_tiket"], r["tanggal"], r["nama_pelapor"],
             r["no_whatsapp"], r["unit"], r["kerusakan"], r["kategori"],
-            r["deskripsi"], r["status"], r["durasi"], r["durasi_menit"]
+            r["deskripsi"], r["status"], r["durasi"],
+            numerator, denumerator
         ])
 
     csv_data = output.getvalue()

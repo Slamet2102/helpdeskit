@@ -487,7 +487,8 @@ function loadReport() {
 
 function exportReportCSV() {
     const params = getReportParams();
-    window.location.href = `/api/dashboard/export${params}${params ? '&' : '?'}format=csv`;
+    // Endpoint export terpadu — sama dengan yang dipakai di Daftar Tiket
+    window.location.href = `/api/tiket/export${params}${params ? '&' : '?'}format=csv`;
 }
 
 // Export Report PDF disembunyikan sementara
