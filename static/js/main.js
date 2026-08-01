@@ -137,15 +137,46 @@ function handleSSEEvent(event, data) {
 
 // ===== Authentication Functions =====
 
+// Decode payload JWT tanpa verifikasi tanda tangan — cukup untuk membaca klaim exp
+function decodeJwtPayload(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        if (!base64Url) return null;
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
+// Periksa apakah token JWT sudah kedaluwarsa berdasarkan klaim exp
+function isTokenExpired(token) {
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.exp) return true;
+    return payload.exp * 1000 <= Date.now();
+}
+
 // Check if user is authenticated and update navbar
 function checkAuth() {
-    const token = localStorage.getItem('auth_token');
-    const username = localStorage.getItem('auth_username');
+    let token = localStorage.getItem('auth_token');
+    let username = localStorage.getItem('auth_username');
     const loginBtn = document.getElementById('btn-login');
     const logoutBtn = document.getElementById('btn-logout');
     const authUserEl = document.getElementById('auth-username');
     const navArsip = document.getElementById('nav-arsip');
     const navMaster = document.getElementById('nav-master');
+
+    // Token ada tapi sudah kedaluwarsa/tidak valid -> anggap logout, bersihkan storage
+    if (token && (!username || isTokenExpired(token))) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_username');
+        localStorage.removeItem('auth_role');
+        token = null;
+        username = null;
+    }
 
     if (token && username) {
         // User is logged in
@@ -197,6 +228,12 @@ async function logout() {
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
     connectSSE();
+});
+
+// Re-check auth saat tab kembali aktif — token bisa saja kedaluwarsa selama tidak dipakai
+window.addEventListener('focus', checkAuth);
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) checkAuth();
 });
 
 // Close SSE connection before navigating away to free server resources
