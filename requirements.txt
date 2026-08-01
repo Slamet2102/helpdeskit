@@ -1,0 +1,13 @@
+# Dependencies Helpdesk IT Rumah Sakit
+# Versi disesuaikan dengan yang terpasang di .venv (terverifikasi 2026-08-01)
+fastapi==0.139.2
+uvicorn==0.51.0
+sqlalchemy==2.0.51
+jinja2==3.1.6
+python-dotenv==1.2.2
+aiofiles==25.1.0
+httpx==0.28.1
+pydantic==2.13.4
+fpdf2==2.8.7
+pyjwt==2.13.0
+python-multipart==0.0.32

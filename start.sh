@@ -93,17 +93,7 @@ echo -e "${H_YELLOW}[INFO]${H_RESET} Memeriksa dependencies..."
 if ! python -c "import uvicorn" 2>/dev/null; then
     echo -e "${H_YELLOW}[INFO]${H_RESET} Menginstall dependencies..."
     pip install --upgrade pip --quiet
-    pip install \
-        fastapi \
-        uvicorn \
-        sqlalchemy \
-        jinja2 \
-        python-dotenv \
-        aiofiles \
-        httpx \
-        pydantic \
-        fpdf2 \
-        --quiet
+    pip install -r requirements.txt --quiet
     echo -e "${H_GREEN}[OK]${H_RESET} Dependencies installed."
 else
     echo -e "${H_GREEN}[OK]${H_RESET} Semua dependencies sudah tersedia."
@@ -131,5 +121,5 @@ echo ""
 echo -e "${H_YELLOW}Tekan Ctrl+C untuk menghentikan server.${H_RESET}"
 echo ""
 
-# Jalankan menggunakan uvicorn langsung (sama seperti run.py)
-exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# Jalankan menggunakan uvicorn langsung (sama seperti run.py / auto-start.sh)
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
