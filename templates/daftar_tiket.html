@@ -82,8 +82,9 @@
                     </tbody>
                 </table>
             </div>
-            <nav>
-                <ul class="pagination justify-content-center" id="pagination"></ul>
+<nav class="pagination-wrapper">
+                <ul class="pagination justify-content-center mb-0" id="pagination"></ul>
+                <div class="total-tickets" id="total-tickets"></div>
             </nav>
         </div>
     </div>
@@ -190,15 +191,18 @@ function loadTickets(page = 1) {
     if (unitId) url += `&unit_id=${unitId}`;
     if (search) url += `&search=${encodeURIComponent(search)}`;
 
-    const signal = getAbortSignal();
+const signal = getAbortSignal();
     fetch(url, { signal })
         .then(async r => {
             const totalPages = Number(r.headers.get('x-total-pages') || 1);
+            const totalCount = Number(r.headers.get('x-total-count') || 0);
             const data = await r.json();
-            return { data, totalPages };
+            return { data, totalPages, totalCount };
         })
-        .then(({ data, totalPages }) => {
+        .then(({ data, totalPages, totalCount }) => {
             const tbody = document.getElementById('tiket-table-body');
+            const totalEl = document.getElementById('total-tickets');
+            totalEl.innerHTML = `Total: <strong>${totalCount}</strong> tiket`;
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="10" class="text-center">Tidak ada tiket ditemukan</td></tr>';
                 document.getElementById('pagination').innerHTML = '';
