@@ -660,13 +660,15 @@ def export_tiket(
         tanggal_local = t.tanggal
         if tanggal_local is not None:
             try:
+                if tanggal_local.tzinfo is None:
+                    tanggal_local = tanggal_local.replace(tzinfo=timezone.utc)
                 tanggal_local = tanggal_local.astimezone(local_tz)
             except Exception:
                 pass
         export_data.append({
             "id": t.id,
             "nomor_tiket": t.nomor_tiket,
-            "tanggal": tanggal_local.isoformat() if tanggal_local else None,
+            "tanggal": tanggal_local.strftime("%Y-%m-%d %H:%M") if tanggal_local else None,
             "nama_pelapor": t.nama_pelapor,
             "no_whatsapp": t.no_whatsapp,
             "unit": t.unit.nama_unit if t.unit else None,
