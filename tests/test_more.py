@@ -66,3 +66,51 @@ def test_master_create_and_delete_unit():
     assert resp2.status_code == 200
     j = resp2.json()
     assert j.get("message") == "Unit deleted"
+
+
+@patch("app.waha.notify_tiket_baru", new_callable=lambda: AsyncMock(return_value=True))
+@patch("app.waha.notify_status_change", new_callable=lambda: AsyncMock(return_value=True))
+def test_batch_archive_and_restore_selected(mock_notify_status, mock_notify_baru):
+    """Buat tiket, arsipkan, lalu pulihkan lewat endpoint batch restore (pulihkan pilihan)."""
+    tiket_ids = []
+    for i in range(2):
+        resp = client.post(
+            "/api/tiket/",
+            data={
+                "nama_pelapor": f"RestoreTest{i}",
+                "no_whatsapp": f"62812000000{i}",
+                "unit_id": 1,
+                "kerusakan_id": 1,
+                "deskripsi": "restore batch test"
+            },
+        )
+        assert resp.status_code == 200
+        tiket_ids.append(resp.json()["id"])
+
+    # Arsipkan semua (DELETE = soft archive)
+    for tid in tiket_ids:
+        resp = client.delete(f"/api/tiket/{tid}")
+        assert resp.status_code == 200
+
+    # Pastikan masuk arsip
+    arch = client.get("/api/tiket/archive?limit=100").json()
+    arch_ids = [t["id"] for t in arch["data"]]
+    assert all(tid in arch_ids for tid in tiket_ids)
+
+    # Pulihkan batch (pulihkan pilihan)
+    resp = client.post("/api/tiket/archive/batch/restore", json={"ids": tiket_ids})
+    assert resp.status_code == 200
+    assert resp.json().get("restored") == 2
+
+    # Tidak ada lagi di arsip, dan kembali ke daftar aktif
+    arch = client.get("/api/tiket/archive?limit=100").json()
+    arch_ids = [t["id"] for t in arch["data"]]
+    assert not any(tid in arch_ids for tid in tiket_ids)
+
+    active = client.get("/api/tiket").json()
+    active_ids = [t["id"] for t in active]
+    assert all(tid in active_ids for tid in tiket_ids)
+
+    # IDs kosong harus ditolak
+    resp = client.post("/api/tiket/archive/batch/restore", json={"ids": []})
+    assert resp.status_code == 400
