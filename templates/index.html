@@ -196,8 +196,9 @@
                     </tbody>
                 </table>
             </div>
-            <nav>
-                <ul class="pagination justify-content-center" id="pagination"></ul>
+<nav class="pagination-wrapper">
+                <ul class="pagination justify-content-center mb-0" id="pagination"></ul>
+                <div class="total-tickets" id="total-tickets"></div>
             </nav>
         </div>
     </div>
@@ -389,8 +390,10 @@ function loadTickets(page = 1) {
             const data = await r.json();
             return { data, totalCount, totalPages };
         })
-        .then(({ data, totalCount, totalPages }) => {
+.then(({ data, totalCount, totalPages }) => {
             const tbody = document.getElementById('tiket-table-body');
+            const totalEl = document.getElementById('total-tickets');
+            totalEl.innerHTML = `Total: <strong>${totalCount}</strong> tiket`;
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada tiket</td></tr>';
                 document.getElementById('pagination').innerHTML = '';
@@ -446,8 +449,10 @@ function loadReport() {
     const params = getReportParams();
     fetch(`/api/dashboard/tiket${params}`, { signal })
         .then(r => r.json())
-        .then(data => {
+.then(data => {
             const tbody = document.getElementById('tiket-table-body');
+            const totalEl = document.getElementById('total-tickets');
+            totalEl.innerHTML = `Total: <strong>${data.length}</strong> tiket`;
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada tiket untuk periode ini</td></tr>';
                 document.getElementById('pagination').innerHTML = '';

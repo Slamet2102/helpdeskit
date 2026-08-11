@@ -39,6 +39,11 @@ hardware dan jaringan di lingkungan rumah sakit. Aplikasi ini memungkinkan:
 - Export laporan ke **CSV** dan **PDF**.
 - Arsip tiket lama dan kelola data master (unit, jenis kerusakan, user).
 
+Selain aplikasi utama tersebut, repositori ini juga memuat **API REST Flask** terpisah
+(`api_ithelpdesk/`) yang membaca **database yang sama** (`helpdesk.db`) dan memublikasikan
+data tiket berstatus *selesai* ke aplikasi lain — dokumentasi endpoint ada di
+[Bagian 11](#11-api-endpoint).
+
 | | |
 |---|---|
 | **Backend** | FastAPI (Python) |
@@ -95,6 +100,11 @@ hardware dan jaringan di lingkungan rumah sakit. Aplikasi ini memungkinkan:
 > langsung oleh skrip `start.sh` / `start.bat` / `auto-start.sh`. Pastikan **PyJWT** dan
 > **python-multipart** ikut terinstall (keduanya wajib agar login & upload bekerja).
 
+### API REST Flask (`api_ithelpdesk/`)
+- **Flask** 3.1.3 — server REST API mandiri (default port **5005**), berbagi database
+  yang sama dengan aplikasi utama (SQLite `helpdesk.db`).
+- Memiliki venv & `requirements.txt` tersendiri di dalam folder `api_ithelpdesk/`.
+
 ---
 
 ## 4. Struktur Proyek
@@ -116,6 +126,14 @@ ITHelpdesk/
 │       ├── dashboard.py     # Statistik, trend, tiket per periode, import CSV
 │       ├── master.py        # CRUD User, Unit, Jenis Kerusakan
 │       └── tiket.py         # CRUD tiket, status, arsip, export, batch
+├── api_ithelpdesk/          # API REST Flask (port 5005) — membaca helpdesk.db
+│   ├── app.py               # Aplikasi Flask + endpoints
+│   ├── config.py            # Konfigurasi (env/.env: API_HOST, API_PORT, HELPDESK_DB_PATH)
+│   ├── db.py                # Akses SQLite read-only
+│   ├── .env                 # HELPDESK_DB_PATH → ../helpdesk.db
+│   ├── run.sh               # Jalankan manual (venv + python app.py)
+│   ├── auto-start.sh        # Autostart API (dipanggil auto-start.sh root)
+│   └── requirements.txt
 ├── scripts/
 │   └── migrate_db.py        # Skrip migrasi kolom (idempotent)
 ├── static/
@@ -156,6 +174,8 @@ ITHelpdesk/
 - **WAHA service** berjalan — contoh: `http://localhost:3000/api`
 - Untuk akses dari komputer lain: pastikan server & client dalam **satu jaringan** (WiFi/LAN)
   dan **port 8000** terbuka di firewall.
+- **API REST Flask** (`api_ithelpdesk/`) berjalan terpisah di **port 5005** (default)
+  — akses via `http://<IP-server>:5005`.
 
 ---
 
@@ -249,9 +269,24 @@ nohup .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> ser
 > ```
 > (Perubahan pada **template HTML** langsung aktif tanpa restart, karena Jinja2 memuat template dari disk setiap request.)
 
-### Autostart saat reboot
-- `auto-start.sh` — dipanggil oleh **cron @reboot** untuk menjalankan server otomatis
-  dan menulis log ke `server.log` (otomatis dipangkas jika > 5MB).
+### Autostart saat reboot / startup
+
+Saat komputer nyala atau restart, **cron `@reboot`** (user) memanggil `auto-start.sh`
+yang menjalankan **dua service** sekaligus. Masing-masing punya log sendiri:
+
+| Service | Port | Skrip | Log |
+|---|---|---|---|
+| Server utama (FastAPI/uvicorn) | 8000 | `auto-start.sh` | `server.log` |
+| API REST (Flask) `api_ithelpdesk/` | 5005 | `api_ithelpdesk/auto-start.sh` | `api_ithelpdesk/api.log` |
+
+- Baris cron:
+  `@reboot /home/zabbix/ITHelpdesk/auto-start.sh > /home/zabbix/ITHelpdesk/cron.log 2>&1`
+- `auto-start.sh` membuat `.venv` + menginstall dependensi jika belum ada, lalu
+  menjalankan server utama di background (`nohup`).
+- Kemudian memanggil `api_ithelpdesk/auto-start.sh` dengan **guard `||`** — jika API
+  gagal start (mis. port 5005 sudah dipakai), server utama **tetap berjalan**.
+- Kedua script memangkas log otomatis jika ukurannya > 5 MB.
+- Restart manual setelah ubah kode: `pkill -9 -f "uvicorn app.main:app"` lalu `./auto-start.sh`.
 - `start-helpdesk.desktop` — shortcut desktop untuk memulai aplikasi.
 
 ### Akses
@@ -388,6 +423,37 @@ lengkap dengan seed data awal.
 | PUT/DELETE | `/api/master/units/{id}` | Update / hapus unit |
 | GET/POST | `/api/master/kerusakan` | List / buat jenis kerusakan (query kategori: Hardware/Jaringan) |
 | PUT/DELETE | `/api/master/kerusakan/{id}` | Update / hapus jenis kerusakan |
+
+### API REST Flask — `api_ithelpdesk` (port 5005)
+
+Server Flask **mandiri** (terpisah dari FastAPI) yang membaca **database yang sama**
+(`helpdesk.db`) dan memublikasikan data tiket berstatus **`selesai`** ke aplikasi
+lain/jaringan. Default berjalan di `http://0.0.0.0:5005`.
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | `/` | Info API & daftar endpoint |
+| GET | `/api/tables` | Daftar semua tabel di database |
+| GET | `/api/status` | Jumlah tiket berstatus `selesai` |
+| GET | `/api/tiket` | Semua tiket berstatus `selesai` |
+| GET | `/api/tiket/{id}` | Satu tiket (hanya yang `selesai`) |
+| GET | `/api/tiket/bulanan?bulan=YYYY-MM` | Laporan bulanan per tanggal (`date`, `num`, `denum`) |
+
+Konfigurasi via environment / `.env` (`api_ithelpdesk/.env`):
+
+| Variable | Default | Keterangan |
+|---|---|---|
+| `HELPDESK_DB_PATH` | `./helpdesk.db` | Lokasi database (di sini diarahkan ke `../helpdesk.db`) |
+| `API_HOST` | `0.0.0.0` | Host bind server |
+| `API_PORT` | `5005` | Port server |
+| `API_DEBUG` | `false` | Mode debug Flask |
+
+Contoh penggunaan:
+
+```bash
+curl http://localhost:5005/api/status
+curl "http://localhost:5005/api/tiket/bulanan?bulan=2026-08"
+```
 
 ---
 
@@ -570,6 +636,13 @@ Jika muncul lagi, pastikan kode menggunakan `bytes(_generate_pdf(...))`.
 ### Port 8000 sudah dipakai
 Ganti port dengan parameter `--port <nomor>` atau gunakan `run.py`.
 
+### Port 5005 (API Flask `api_ithelpdesk`) sudah dipakai
+- Jika `api_ithelpdesk/api.log` menulis `Address already in use`, berarti port 5005
+  masih dipegang proses lain (mis. hasil uji manual yang berjalan sebagai **root**,
+  terlihat di `ps` sebagai `python3 app.py`).
+- Saat reboot proses tersebut mati, dan `auto-start.sh` otomatis mengambil alih port 5005.
+- Tanpa menunggu reboot: `sudo kill <PID>` lalu jalankan ulang `./auto-start.sh`.
+
 ---
 
 ## 18. Roadmap / TODO
@@ -587,4 +660,4 @@ Berdasarkan `TODO.md` dan README:
 
 ---
 
-*Dokumen ini dibuat otomatis dari struktur dan kode project (2026-08-01).*
+*Dokumen ini dibuat otomatis dari struktur dan kode project (terakhir diperbarui 2026-08-11 — penambahan API REST Flask `api_ithelpdesk/` & autostart dua service).*

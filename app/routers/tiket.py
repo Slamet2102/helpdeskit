@@ -30,6 +30,10 @@ class BatchDeleteRequest(BaseModel):
     ids: List[int]
 
 
+class BatchRestoreRequest(BaseModel):
+    ids: List[int]
+
+
 def generate_nomor_tiket():
     """Generate nomor tiket: IT-YYYYMMDD-XXX"""
     now = datetime.now().astimezone()
@@ -295,6 +299,22 @@ def get_archived_tiket(
         "limit": limit,
         "total_pages": (total + limit - 1) // limit
     }
+
+
+@router.post("/archive/batch/restore", response_model=dict)
+def restore_archived_tiket_batch(req: BatchRestoreRequest, db: Session = Depends(get_db)):
+    """Pulihkan banyak tiket dari arsip sekaligus berdasarkan ID."""
+    if not req.ids:
+        raise HTTPException(status_code=400, detail="Tidak ada ID tiket yang diberikan")
+    restored = db.query(Tiket).filter(Tiket.id.in_(req.ids), Tiket.is_archived == True).all()
+    restored_count = len(restored)
+    for tiket in restored:
+        tiket.is_archived = False
+        db.add(tiket)
+    db.commit()
+    if restored_count == 0:
+        raise HTTPException(status_code=404, detail="Tiket arsip tidak ditemukan")
+    return {"restored": restored_count}
 
 
 @router.post("/archive/{tiket_id}/restore", response_model=TiketResponse)

@@ -380,9 +380,31 @@ body {
 }
 
 /* Pagination */
-.pagination {
+.pagination-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-top: 1rem;
+}
+
+.total-tickets {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.pagination {
+    margin-top: 0;
     gap: 0.25rem;
+}
+
+html[data-bs-theme="dark"] .total-tickets {
+    color: #94a3b8;
 }
 
 .page-link {
