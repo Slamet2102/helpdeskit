@@ -15,6 +15,22 @@ def serialize_local_datetime(dt: datetime) -> str:
         return dt.isoformat()
 
 
+def format_local_datetime(dt: datetime, fmt: str = "%Y-%m-%d %H:%M") -> Optional[str]:
+    """Format datetime (jika naif dianggap UTC) ke waktu lokal, mis. '2026-08-11 16:44'.
+
+    Dipakai agar waktu di pesan notifikasi (WAHA) sama dengan yang tampil di dashboard.
+    """
+    if dt is None:
+        return None
+    try:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        local_tz = datetime.now().astimezone().tzinfo
+        return dt.astimezone(local_tz).strftime(fmt)
+    except Exception:
+        return dt.isoformat()
+
+
 class UserSchema(BaseModel):
     id: int
     username: str

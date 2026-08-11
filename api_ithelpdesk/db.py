@@ -58,6 +58,7 @@ def tiket_selesai(status: str = config.STATUS_SELESAI) -> list[dict]:
             LEFT JOIN unit u ON u.id = t.unit_id
             LEFT JOIN jenis_kerusakan jk ON jk.id = t.kerusakan_id
             WHERE LOWER(COALESCE(t.status, '')) = LOWER(?)
+              AND t.is_archived = 0
             ORDER BY t.tanggal
             """,
             (status,),
@@ -78,7 +79,9 @@ def tiket_by_id(id_tiket: int, status: str = config.STATUS_SELESAI) -> Optional[
             FROM tiket t
             LEFT JOIN unit u ON u.id = t.unit_id
             LEFT JOIN jenis_kerusakan jk ON jk.id = t.kerusakan_id
-            WHERE t.id = ? AND LOWER(COALESCE(t.status, '')) = LOWER(?)
+            WHERE t.id = ?
+              AND LOWER(COALESCE(t.status, '')) = LOWER(?)
+              AND t.is_archived = 0
             """,
             (id_tiket, status),
         ).fetchone()
@@ -91,25 +94,28 @@ def laporan_bulanan(bulan: str, status: str = config.STATUS_SELESAI) -> list[dic
 
     Setiap baris:
       - date  : tanggal (YYYY-MM-DD) dari kolom `tanggal`
-      - num   : jumlah tiket SUKSES/SUDAH SELESAI pada tanggal itu
-                yang durasi_menit-nya >= AMBANG_DURASI_MENIT (>= 60 menit)
-      - denum : jumlah SEMUA tiket 'selesai' yang masuk pada tanggal itu
+      - num   : jumlah tiket 'selesai' pada tanggal itu yang durasi_menit-nya
+                >= AMBANG_DURASI_MENIT (>= 60 menit)
+      - denum : jumlah tiket 'selesai' pada tanggal itu yang durasi_menit-nya
+                < AMBANG_DURASI_MENIT (< 60 menit)
 
     Hanya tiket yang status = 'selesai' yang dihitung.
+    Tiket dengan durasi kosong (NULL) tidak dihitung di num maupun denum.
     """
     with get_connection() as con:
         rows = con.execute(
             """
             SELECT SUBSTR(t.tanggal, 1, 10) AS tgl,
                    SUM(CASE WHEN t.durasi_menit >= ? THEN 1 ELSE 0 END) AS num,
-                   COUNT(*) AS denum
+                   SUM(CASE WHEN t.durasi_menit < ? THEN 1 ELSE 0 END) AS denum
             FROM tiket t
             WHERE LOWER(COALESCE(t.status, '')) = LOWER(?)
               AND SUBSTR(t.tanggal, 1, 7) = ?
+              AND t.is_archived = 0
             GROUP BY tgl
             ORDER BY tgl
             """,
-            (config.AMBANG_DURASI_MENIT, status, bulan),
+            (config.AMBANG_DURASI_MENIT, config.AMBANG_DURASI_MENIT, status, bulan),
         ).fetchall()
     # Normalisasi hasil: pastikan tanggal tidak null (mis. tanggal kosong di db)
     hasil = []
@@ -128,7 +134,12 @@ def ringkasan(status: str = config.STATUS_SELESAI) -> dict:
     """Ringkasan singkat: jumlah tiket dengan status tertentu."""
     with get_connection() as con:
         hitung = con.execute(
-            "SELECT COUNT(*) AS jum FROM tiket WHERE LOWER(COALESCE(status,'')) = LOWER(?)",
+            """
+            SELECT COUNT(*) AS jum
+            FROM tiket
+            WHERE LOWER(COALESCE(status,'')) = LOWER(?)
+              AND is_archived = 0
+            """,
             (status,),
         ).fetchone()["jum"]
     return {"status": status, "jumlah_tiket_selesai": hitung}

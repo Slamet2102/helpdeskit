@@ -10,7 +10,7 @@ from typing import Optional, List
 from fpdf import FPDF
 from ..database import get_db, has_column
 from ..models import Tiket, Progress, Unit, JenisKerusakan
-from ..schemas import TiketCreate, TiketUpdateStatus, TiketResponse
+from ..schemas import TiketCreate, TiketUpdateStatus, TiketResponse, format_local_datetime
 from ..config import UPLOAD_DIR, WAHA_IT_NUMBER
 from ..events import event_manager
 from ..waha import (
@@ -462,7 +462,7 @@ async def update_tiket_status(
                     ruangan=(tiket.unit.nama_unit if getattr(tiket, 'unit', None) else None),
                     kerusakan=(tiket.kerusakan.nama_kerusakan if getattr(tiket, 'kerusakan', None) else None),
                     deskripsi=tiket.deskripsi,
-                    tanggal=str(tiket.tanggal),
+                    tanggal=format_local_datetime(tiket.tanggal),
                     durasi=tiket.durasi,
                 )
             except Exception as e:

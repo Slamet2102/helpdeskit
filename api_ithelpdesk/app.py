@@ -117,7 +117,7 @@ def api_laporan_bulanan():
     diman:
       date  -> tanggal (dari kolom tanggal tiket)
       num   -> jumlah tiket 'selesai' di tanggal tsb dengan durasi_menit >= 60
-      denum -> jumlah SEMUA tiket 'selesai' yang masuk pada tanggal tsb
+      denum -> jumlah tiket 'selesai' di tanggal tsb dengan durasi_menit < 60
     """
     bulan = request.args.get("bulan", "").strip()
     if not POLA_BULAN.match(bulan):
