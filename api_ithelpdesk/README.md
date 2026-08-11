@@ -67,7 +67,18 @@ python app.py
 
 Secara default server berjalan di `http://0.0.0.0:5005` (bisa diakses dari
 aplikasi lain di jaringan yang sama).
+### Autostart saat komputer nyala/restart
+Pada komputer/server yang sudah terpasang, API ini ikut dijalankan otomatis saat
+boot lewat **cron `@reboot`** → `auto-start.sh` (root project) → `auto-start.sh`
+(folder ini). Script memakai `.venv` folder ini, menyalakan `python app.py` di
+background, dan menulis log ke `api.log`. Menjalankan manual:
 
+```bash
+./auto-start.sh
+```
+
+Untuk uji tanpa bentrok port (mis. port 5005 sudah terpakai proses lain):
+`API_PORT=5099 ./auto-start.sh`.
 ### Konfigurasi (melalui environment variable)
 
 | Variabel          | Default        | Keterangan |
