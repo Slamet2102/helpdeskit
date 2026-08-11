@@ -35,3 +35,12 @@ nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 >> "$LOG_FILE" 2
 SERVER_PID=$!
 echo "[$(date)] Server started with PID: $SERVER_PID" >> "$LOG_FILE"
 echo "[$(date)] Access at http://localhost:8000" >> "$LOG_FILE"
+
+# -----------------------------------------------------------
+# Jalankan API Helpdesk (Flask, port 5005) di background
+# Setiap service punya log sendiri (api_ithelpdesk/api.log).
+# Diberi guard "||" agar kegagalan API tidak menggagalkan
+# server utama (port 8000).
+# -----------------------------------------------------------
+"$PROJECT_DIR/api_ithelpdesk/auto-start.sh" || \
+    echo "[$(date)] WARNING: gagal menjalankan API Helpdesk (port 5005)" >> "$LOG_FILE"
