@@ -64,49 +64,44 @@ let totalPages = 1;
 function renderPagination(page, totalPages) {
     if (totalPages <= 1) return '';
 
-    const maxButtons = Math.min(5, totalPages);
-    let start = Math.max(1, page - Math.floor(maxButtons / 2));
-    let end = start + maxButtons - 1;
-    if (end > totalPages) {
+    const maxButtons = 5;
+    let start, end;
+
+    if (totalPages <= maxButtons) {
+        start = 1;
         end = totalPages;
+    } else {
+        // Window of maxButtons centered on current page
+        start = Math.max(1, page - 2);
+        end = Math.min(totalPages, start + maxButtons - 1);
+        // Adjust start if end hits max
         start = Math.max(1, end - maxButtons + 1);
     }
 
-    const pages = [];
-    for (let i = start; i <= end; i++) {
-        pages.push(i);
-    }
+    const prevDisabled = page <= 1 ? ' disabled' : '';
+    const nextDisabled = page >= totalPages ? ' disabled' : '';
+    const prevBtn = `<li class="page-item${prevDisabled}"><a class="page-link" href="#" onclick="loadArchived(${page - 1}); return false;" aria-label="Sebelumnya"><i class="bi bi-chevron-left"></i></a></li>`;
+    const nextBtn = `<li class="page-item${nextDisabled}"><a class="page-link" href="#" onclick="loadArchived(${page + 1}); return false;" aria-label="Berikutnya"><i class="bi bi-chevron-right"></i></a></li>`;
 
-    const pageItems = [];
-
-    // Tombol Previous
-    pageItems.push('<li class="page-item' + (page === 1 ? ' disabled' : '') + '"><a class="page-link" href="#" onclick="' + (page > 1 ? 'loadArchived(' + (page - 1) + '); return false;' : 'return false;') + '">&laquo;</a></li>');
-
-    // Tombol halaman pertama jika tidak dalam range
+    let items = [];
     if (start > 1) {
-        pageItems.push('<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(1); return false;">1</a></li>');
+        items.push('<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(1); return false;">1</a></li>');
         if (start > 2) {
-            pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+            items.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
         }
     }
-
-    pages.forEach(function(p) {
-        const active = p === page ? ' active' : '';
-        pageItems.push('<li class="page-item' + active + '"><a class="page-link" href="#" onclick="loadArchived(' + p + '); return false;">' + p + '</a></li>');
-    });
-
-    // Tombol halaman terakhir jika tidak dalam range
+    for (let i = start; i <= end; i += 1) {
+        const active = i === page ? ' active' : '';
+        items.push(`<li class="page-item${active}"><a class="page-link" href="#" onclick="loadArchived(${i}); return false;">${i}</a></li>`);
+    }
     if (end < totalPages) {
         if (end < totalPages - 1) {
-            pageItems.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+            items.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
         }
-        pageItems.push('<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(' + totalPages + '); return false;">' + totalPages + '</a></li>');
+        items.push(`<li class="page-item"><a class="page-link" href="#" onclick="loadArchived(${totalPages}); return false;">${totalPages}</a></li>`);
     }
 
-    // Tombol Next
-    pageItems.push('<li class="page-item' + (page === totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" onclick="' + (page < totalPages ? 'loadArchived(' + (page + 1) + '); return false;' : 'return false;') + '">&raquo;</a></li>');
-
-    return pageItems.join('');
+    return prevBtn + items.join('') + nextBtn;
 }
 
 function toggleSelectAll(checked) {
