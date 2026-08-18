@@ -642,22 +642,6 @@ Ganti port dengan parameter `--port <nomor>` atau gunakan `run.py`.
   terlihat di `ps` sebagai `python3 app.py`).
 - Saat reboot proses tersebut mati, dan `auto-start.sh` otomatis mengambil alih port 5005.
 - Tanpa menunggu reboot: `sudo kill <PID>` lalu jalankan ulang `./auto-start.sh`.
-
----
-
-## 18. Roadmap / TODO
-
-Berdasarkan `TODO.md` dan README:
-
-- [x] Fitur checklist & batch archive
-- [x] Export CSV (tombol selalu tampil di daftar tiket)
-- [x] Endpoint export terpadu (Dashboard + Daftar Tiket)
-- [ ] Tambah test otomatis untuk endpoint utama
-- [ ] UI/UX polish & validasi form
-- [ ] Deployment (systemd/docker)
-- [ ] Hashing password (bcrypt) untuk produksi
-- [ ] Export PDF di UI (backend sudah mendukung)
-
 ---
 
 *Dokumen ini dibuat otomatis dari struktur dan kode project (terakhir diperbarui 2026-08-11 — penambahan API REST Flask `api_ithelpdesk/` & autostart dua service).*

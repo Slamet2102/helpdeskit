@@ -4,7 +4,7 @@
 <div class="container">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
         <label class="form-label mb-0 me-1 fw-bold">Cari:</label>
-        <input type="text" class="form-control" style="width:200px;" id="filter-search" placeholder="No tiket atau nama...">
+        <input type="text" class="form-control" style="width:220px;" id="filter-search" placeholder="No tiket, pelapor, ruangan... (min 3 huruf)">
         <button class="btn btn-primary" onclick="loadArchived(1)">
             <i class="bi bi-search"></i> Cari
         </button>
@@ -60,6 +60,21 @@
 let currentPage = 1;
 const ITEMS_PER_PAGE = 10;
 let totalPages = 1;
+
+// Auto-search: jalankan pencarian otomatis saat mengetik minimal 3 huruf (di semua data tiket arsip)
+let searchTimeout = null;
+function setupAutoSearch() {
+    const input = document.getElementById('filter-search');
+    if (!input) return;
+    input.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const q = this.value.trim();
+        // Ketik >= 3 huruf -> cari otomatis; kosongkan -> tampilkan semua
+        if (q.length >= 3 || q.length === 0) {
+            searchTimeout = setTimeout(() => loadArchived(1), 400);
+        }
+    });
+}
 
 function renderPagination(page, totalPages) {
     if (totalPages <= 1) return '';
@@ -253,6 +268,7 @@ async function deleteAllArchived() {
     loadArchived(1);
 }
 
+setupAutoSearch();
 loadArchived(1);
 </script>
 {% endblock %}

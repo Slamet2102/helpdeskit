@@ -33,7 +33,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Cari</label>
-                    <input type="text" class="form-control" id="filter-search" placeholder="Cari no tiket atau nama...">
+                    <input type="text" class="form-control" id="filter-search" placeholder="Cari no tiket, pelapor, ruangan... (min 3 huruf)">
                 </div>
                 <div class="col-md-1 d-grid">
                     <button class="btn btn-primary" onclick="loadTickets(1)">
@@ -106,6 +106,21 @@ function getAbortSignal() {
     }
     abortController = new AbortController();
     return abortController.signal;
+}
+
+// Auto-search: jalankan pencarian otomatis saat mengetik minimal 3 huruf (di semua data tiket)
+let searchTimeout = null;
+function setupAutoSearch() {
+    const input = document.getElementById('filter-search');
+    if (!input) return;
+    input.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const q = this.value.trim();
+        // Ketik >= 3 huruf -> cari otomatis; kosongkan -> tampilkan semua
+        if (q.length >= 3 || q.length === 0) {
+            searchTimeout = setTimeout(() => loadTickets(1), 400);
+        }
+    });
 }
 
 function toggleSort(column) {
@@ -340,6 +355,7 @@ function exportSelectedCSV() {
 
 // Export PDF disembunyikan sementara
 
+setupAutoSearch();
 loadUnits();
 loadTickets();
 </script>

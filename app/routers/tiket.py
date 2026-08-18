@@ -225,9 +225,11 @@ def get_tiket_list(
     if unit_id:
         query = query.filter(Tiket.unit_id == unit_id)
     if search:
+        query = query.join(Tiket.unit)
         query = query.filter(
             Tiket.nomor_tiket.contains(search) |
-            Tiket.nama_pelapor.contains(search)
+            Tiket.nama_pelapor.contains(search) |
+            Unit.nama_unit.contains(search)
         )
 
     if today:
@@ -286,9 +288,11 @@ def get_archived_tiket(
     """Ambil daftar tiket yang sudah diarsipkan dengan pagination."""
     query = db.query(Tiket).filter(Tiket.is_archived == True)
     if search:
+        query = query.join(Tiket.unit)
         query = query.filter(
             Tiket.nomor_tiket.contains(search) |
-            Tiket.nama_pelapor.contains(search)
+            Tiket.nama_pelapor.contains(search) |
+            Unit.nama_unit.contains(search)
         )
     total = query.count()
     tiket_list = query.order_by(Tiket.tanggal.desc()).offset((page - 1) * limit).limit(limit).all()
@@ -634,9 +638,11 @@ def export_tiket(
     if unit_id:
         query = query.filter(Tiket.unit_id == unit_id)
     if search:
+        query = query.join(Tiket.unit)
         query = query.filter(
             Tiket.nomor_tiket.contains(search) |
-            Tiket.nama_pelapor.contains(search)
+            Tiket.nama_pelapor.contains(search) |
+            Unit.nama_unit.contains(search)
         )
     if today:
         local_tz = datetime.now().astimezone().tzinfo
