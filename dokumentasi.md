@@ -148,6 +148,9 @@ ITHelpdesk/
 │   ├── master_data.html     # Kelola master data
 │   ├── login.html           # Halaman login
 │   └── archived_tiket.html  # Arsip tiket
+│
+│   Catatan: `base.html` mengandung navbar & footer dasar yang dipakai semua halaman.
+│   Footer berisi copyright: "Copyright @2026 RS PKU Muhammadiyah Mayong | All Right Reserved"
 ├── tests/
 │   ├── test_api.py
 │   └── test_more.py
