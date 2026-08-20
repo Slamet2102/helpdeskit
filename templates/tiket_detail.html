@@ -68,7 +68,7 @@
                         </div>
                         <div id="detail-foto-container" style="display:none;" class="mb-3">
                             <h6>Foto:</h6>
-                            <img id="detail-foto" class="img-fluid rounded" style="max-height: 300px;" alt="Foto">
+                            <a href="" id="detail-foto-link" target="_blank" rel="noopener noreferrer"> <img id="detail-foto" class="img-fluid rounded" style="max-height: 300px; cursor: zoom-in;" alt="Foto"></a>
                         </div>
                     </div>
                 </div>
@@ -205,6 +205,7 @@ async function loadTiket() {
         if (t.foto) {
             document.getElementById('detail-foto-container').style.display = 'block';
             document.getElementById('detail-foto').src = t.foto;
+            document.getElementById('detail-foto-link').href = t.foto;
         }
 
         // Load riwayat progress
