@@ -1,4 +1,4 @@
-const CACHE_NAME = 'helpdeskit-static-v1';
+const CACHE_NAME = 'helpdeskit-static-v4';
 const OFFLINE_URL = '/offline';
 
 const PRECACHE_ASSETS = [

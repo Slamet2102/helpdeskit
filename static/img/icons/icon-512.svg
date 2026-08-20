@@ -1,6 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24">
-  <rect width="100%" height="100%" fill="#0d6efd" rx="64"/>
-  <g fill="#fff" transform="translate(4,4) scale(1.2)">
-    <path d="M2 11h2v2H2zM5 6h2v7H5zM8 9h2v4H8zM11 4h2v9h-2zM14 7h2v6h-2z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <g transform="translate(256,256)">
+    <circle r="168" fill="#f8fafc" opacity="0.12"/>
+    <circle r="128" fill="#f8fafc"/>
+
+    <path d="M0,-194 L32,-146 L0,-98 L-32,-146 Z" fill="#1d4ed8"/>
+    <path d="M0,194 L32,146 L0,98 L-32,146 Z" fill="#1d4ed8"/>
+    <path d="M-194,0 L-146,32 L-98,0 L-146,-32 Z" fill="#1d4ed8"/>
+    <path d="M194,0 L146,32 L98,0 L146,-32 Z" fill="#1d4ed8"/>
+    <path d="M-136,-136 L-92,-92 L-136,-48 L-180,-92 Z" fill="#1d4ed8"/>
+    <path d="M136,-136 L92,-92 L136,-48 L180,-92 Z" fill="#1d4ed8"/>
+    <path d="M-136,136 L-92,92 L-136,48 L-180,92 Z" fill="#1d4ed8"/>
+    <path d="M136,136 L92,92 L136,48 L180,92 Z" fill="#1d4ed8"/>
+
+    <circle r="72" fill="#dbeafe"/>
+    <circle r="30" fill="#1d4ed8"/>
+
+    <g transform="translate(0,0) rotate(-22)">
+      <rect x="-16" y="-82" width="32" height="118" rx="16" fill="#0f172a"/>
+      <circle cx="0" cy="-44" r="38" fill="#0f172a"/>
+      <circle cx="0" cy="42" r="30" fill="#0f172a"/>
+      <path d="M-34 60 L-88 114 L-46 158 L0 102 Z" fill="#0f172a"/>
+      <path d="M34 60 L88 114 L46 158 L0 102 Z" fill="#0f172a"/>
+    </g>
+
+    <g transform="translate(82,-52) rotate(22)">
+      <rect x="-14" y="-96" width="28" height="136" rx="14" fill="#f59e0b"/>
+      <circle cx="0" cy="-38" r="24" fill="#f59e0b"/>
+      <path d="M-28 42 L-88 96 L-46 138 L12 82 Z" fill="#f59e0b"/>
+      <path d="M28 42 L88 96 L46 138 L-12 82 Z" fill="#f59e0b"/>
+    </g>
   </g>
 </svg>
