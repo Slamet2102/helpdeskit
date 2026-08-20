@@ -1,0 +1,22 @@
+# Cloudflare Tunnel Configuration
+# Domain: helpdeskit.biz.id
+# Tunnel: helpdeskit-tunnel
+
+tunnel: 22f3b562-1b3d-41b4-99f3-9aebfd54a80b
+credentials-file: /home/zabbix/ITHelpdesk/cloudflare/22f3b562-1b3d-41b4-99f3-9aebfd54a80b.json
+
+ingress:
+  # Route utama ke aplikasi Helpdesk (FastAPI di port 8000)
+  - hostname: helpdeskit.biz.id
+    service: http://192.168.0.150:8000
+
+  # Route www
+  - hostname: www.helpdeskit.biz.id
+    service: http://192.168.0.150:8000
+
+  # API Helpdesk (Flask di port 5005)
+  - hostname: api.helpdeskit.biz.id
+    service: http://192.168.0.150:5005
+
+  # Catch-all — kirim 404 untuk semua request lain
+  - service: http_status:404

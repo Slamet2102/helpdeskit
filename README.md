@@ -107,6 +107,22 @@ Catatan WAHA
   - Saat teknisi mengubah status tiket, sistem mengirim status update ke nomor user yang membuat tiket.
   - Saat status berubah menjadi `Selesai`, sistem mengirim notifikasi ke nomor IT dan nomor user yang terdaftar pada tiket.
 
+Deployment dengan Cloudflare Tunnel
+-----------------------------------
+Untuk menghubungkan aplikasi ke domain publik (mis. `helpdeskit.biz.id`)
+tanpa perlu membuka port di router, gunakan Cloudflare Tunnel:
+
+```bash
+# Jalankan script setup otomatis
+cd /home/zabbix/ITHelpdesk
+chmod +x cloudflare/setup-tunnel.sh
+./cloudflare/setup-tunnel.sh
+```
+
+Panduan lengkap: [cloudflare/README-cloudflare.md](cloudflare/README-cloudflare.md)
+
+Catatan cepat: systemd unit yang digunakan adalah `/etc/systemd/system/cloudflared@helpdeskit-tunnel.service` (service sudah disiapkan dan di-enable pada deployment ini).
+
 Langkah berikutnya
 ------------------
 - Tambah test otomatis untuk endpoint utama
