@@ -1,0 +1,21 @@
+[Unit]
+Description=Uvicorn instance for Helpdesk IT (helpdeskit)
+After=network.target
+
+[Service]
+Type=simple
+User=zabbix
+Group=zabbix
+WorkingDirectory=/home/zabbix/ITHelpdesk
+Environment="DATABASE_URL=sqlite:////home/zabbix/ITHelpdesk/helpdesk.db"
+Environment="PYTHONPATH=/home/zabbix/ITHelpdesk"
+ExecStart=/home/zabbix/ITHelpdesk/.venv/bin/python -u -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+KillMode=process
+LimitNOFILE=65536
+StandardOutput=append:/home/zabbix/ITHelpdesk/server.log
+StandardError=append:/home/zabbix/ITHelpdesk/server.log
+
+[Install]
+WantedBy=multi-user.target

@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse
 from pathlib import Path
 
 from .database import init_db
@@ -171,3 +172,22 @@ async def master_data(request: Request):
     if isinstance(auth_result, RedirectResponse):
         return auth_result
     return templates.TemplateResponse(request, "master_data.html")
+
+
+@app.get("/offline", response_class=HTMLResponse)
+async def offline_page(request: Request):
+    """Serve offline fallback page used by service worker."""
+    return templates.TemplateResponse(request, "offline.html")
+
+@app.get('/service-worker.js')
+async def service_worker():
+    """Serve service worker from site root with Service-Worker-Allowed header so it can control the whole scope."""
+    sw_path = str(BASE_DIR / 'static' / 'js' / 'service-worker.js')
+    return FileResponse(sw_path, media_type='application/javascript', headers={'Service-Worker-Allowed': '/'})
+
+
+@app.get('/sw.js')
+async def sw_js():
+    """Alternate path for service worker to avoid cached edge 404s."""
+    sw_path = str(BASE_DIR / 'static' / 'js' / 'service-worker.js')
+    return FileResponse(sw_path, media_type='application/javascript', headers={'Service-Worker-Allowed': '/'})
